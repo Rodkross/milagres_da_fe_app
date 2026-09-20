@@ -8,6 +8,7 @@ import 'auth_gate.dart';
 import 'firebase_options.dart';
 import 'models/programacao_item.dart';
 import 'services/auth_service.dart';
+import 'screens/cultos_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,28 +47,40 @@ const _shortcuts = <_ShortcutData>[
   _ShortcutData('Cultos', Icons.groups_outlined),
   _ShortcutData('Quiz', Icons.lightbulb_outline),
   _ShortcutData('Oração', Icons.favorite_border),
-  _ShortcutData('Convênio', Icons.handshake_outlined),
+  _ShortcutData('Livros', Icons.auto_stories),
 ];
 
-/// Cartões da seção "Novidades" da tela inicial.
-const _news = <_NewsData>[
-  _NewsData(
-    title: 'Semana de Avivamento',
-    excerpt: 'Cultos especiais toda noite, com louvor e pregação da Palavra.',
-    date: '12 Jun',
-    icon: Icons.local_fire_department_outlined,
+/// Escala de Serviço da tela inicial.
+const _escala = <_EscalaData>[
+  _EscalaData(
+    role: 'Recepção e Luzes',
+    name: 'João e Maria',
+    icon: Icons.lightbulb_outline,
   ),
-  _NewsData(
-    title: 'Grupo de Jovens',
-    excerpt: 'Encontro semanal toda quinta-feira às 19h30 no templo.',
-    date: '05 Jun',
-    icon: Icons.favorite_outline,
+  _EscalaData(
+    role: 'Aux de Altar e Oferta',
+    name: 'Carlos e Ana',
+    icon: Icons.volunteer_activism_outlined,
   ),
-  _NewsData(
-    title: 'Escola Bíblica Dominical',
-    excerpt: 'Inscrições abertas para as novas turmas de estudo da Bíblia.',
-    date: '28 Mai',
-    icon: Icons.diversity_1_outlined,
+  _EscalaData(
+    role: 'Mídia',
+    name: 'Lucas',
+    icon: Icons.computer_outlined,
+  ),
+  _EscalaData(
+    role: 'Palavra Devocional',
+    name: 'Pr. Paulo',
+    icon: Icons.menu_book_outlined,
+  ),
+  _EscalaData(
+    role: 'Palavra Ofertória',
+    name: 'Pb. José',
+    icon: Icons.monetization_on_outlined,
+  ),
+  _EscalaData(
+    role: 'Pregação',
+    name: 'Pr. Marcos',
+    icon: Icons.mic_none_outlined,
   ),
 ];
 
@@ -78,17 +91,15 @@ final class _ShortcutData {
   final IconData icon;
 }
 
-final class _NewsData {
-  const _NewsData({
-    required this.title,
-    required this.excerpt,
-    required this.date,
+final class _EscalaData {
+  const _EscalaData({
+    required this.role,
+    required this.name,
     required this.icon,
   });
 
-  final String title;
-  final String excerpt;
-  final String date;
+  final String role;
+  final String name;
   final IconData icon;
 }
 
@@ -131,10 +142,6 @@ class HomeScreen extends StatelessWidget {
           const SliverToBoxAdapter(child: _ShortcutStrip()),
           const SliverPadding(
             padding: EdgeInsets.fromLTRB(20, 28, 20, 0),
-            sliver: SliverToBoxAdapter(child: _SearchField()),
-          ),
-          const SliverPadding(
-            padding: EdgeInsets.fromLTRB(20, 28, 20, 0),
             sliver: SliverToBoxAdapter(
               child: _HeroBanner(items: programacaoAtual),
             ),
@@ -143,7 +150,8 @@ class HomeScreen extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(20, 32, 20, 8),
             sliver: SliverToBoxAdapter(
               child: _SectionHeader(
-                title: 'Novidades',
+                title: 'Escala de Serviço',
+                subtitle: 'Culto de Libertação • Quinta, 19:00',
                 actionLabel: 'Ver tudo',
               ),
             ),
@@ -154,9 +162,9 @@ class HomeScreen extends StatelessWidget {
               delegate: SliverChildBuilderDelegate(
                 (BuildContext context, int index) => Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: _NewsCard(data: _news[index]),
+                  child: _EscalaCard(data: _escala[index]),
                 ),
-                childCount: _news.length,
+                childCount: _escala.length,
               ),
             ),
           ),
@@ -660,43 +668,6 @@ class _ShortcutStrip extends StatelessWidget {
   }
 }
 
-/// Campo de busca apenas visual (não realiza pesquisa).
-class _SearchField extends StatelessWidget {
-  const _SearchField();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 54,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x140B2E5B),
-            blurRadius: 16,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.search, color: AppColors.muted, size: 22),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              AppInfo.searchHint,
-              style: TextStyle(color: AppColors.muted, fontSize: 14.5),
-            ),
-          ),
-          Icon(Icons.qr_code_scanner, color: AppColors.muted, size: 22),
-        ],
-      ),
-    );
-  }
-}
-
 /// Carrossel de imagens da programação, com títulos sobrepostos.
 ///
 /// Hoje consome [programacaoAtual] (imagens locais). Quando a programação
@@ -932,13 +903,20 @@ class _ShortcutItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        // Placeholder para futuras telas.
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${data.label} em breve!'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        if (data.label == 'Cultos') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CultosScreen()),
+          );
+        } else {
+          // Placeholder para futuras telas.
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${data.label} em breve!'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       },
       borderRadius: BorderRadius.circular(12),
       child: Column(
@@ -980,43 +958,72 @@ class _ShortcutItem extends StatelessWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.actionLabel});
+  const _SectionHeader({
+    required this.title,
+    required this.actionLabel,
+    this.subtitle,
+  });
 
   final String title;
   final String actionLabel;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: AppColors.navy,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: AppColors.navy,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                subtitle!,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ],
         ),
         const Spacer(),
-        Text(
-          actionLabel,
-          style: const TextStyle(
-            color: AppColors.gold,
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
+        Padding(
+          padding: const EdgeInsets.only(bottom: 2),
+          child: Row(
+            children: [
+              Text(
+                actionLabel,
+                style: const TextStyle(
+                  color: AppColors.gold,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right, size: 18, color: AppColors.gold),
+            ],
           ),
         ),
-        const SizedBox(width: 4),
-        const Icon(Icons.chevron_right, size: 18, color: AppColors.gold),
       ],
     );
   }
 }
 
-class _NewsCard extends StatelessWidget {
-  const _NewsCard({required this.data});
+class _EscalaCard extends StatelessWidget {
+  const _EscalaCard({required this.data});
 
-  final _NewsData data;
+  final _EscalaData data;
 
   @override
   Widget build(BuildContext context) {
@@ -1035,11 +1042,11 @@ class _NewsCard extends StatelessWidget {
         ],
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 68,
-            height: 68,
+            width: 54,
+            height: 54,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
@@ -1049,15 +1056,16 @@ class _NewsCard extends StatelessWidget {
                 colors: [AppColors.navy, AppColors.royal],
               ),
             ),
-            child: Icon(data.icon, color: AppColors.goldBright, size: 28),
+            child: Icon(data.icon, color: AppColors.goldBright, size: 24),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  data.title,
+                  data.role,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -1066,35 +1074,15 @@ class _NewsCard extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
-                  data.excerpt,
-                  maxLines: 2,
+                  data.name,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: AppColors.muted,
-                    fontSize: 13,
-                    height: 1.4,
+                    fontSize: 14,
                   ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.calendar_today_outlined,
-                      size: 13,
-                      color: AppColors.gold,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      data.date,
-                      style: const TextStyle(
-                        color: AppColors.gold,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
@@ -1109,12 +1097,14 @@ class _NewsCard extends StatelessWidget {
 class _BottomNavBar extends StatelessWidget {
   const _BottomNavBar();
 
-  static const _items = <String>['Início', 'Agenda', 'Doações', 'Perfil'];
+  static const _items = <String>['Início', 'Agenda', 'Doações', 'Convênio', 'Perfil', 'Sair'];
   static const _icons = <IconData>[
     Icons.home_rounded,
     Icons.event_note_outlined,
     Icons.volunteer_activism_outlined,
+    Icons.handshake_outlined,
     Icons.person_outline,
+    Icons.logout_outlined,
   ];
 
   @override
@@ -1122,7 +1112,7 @@ class _BottomNavBar extends StatelessWidget {
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(16, 14, 16, 14 + bottomPadding),
+      padding: EdgeInsets.fromLTRB(10, 14, 10, 14 + bottomPadding),
       decoration: const BoxDecoration(
         color: AppColors.navyDeep,
         border: Border(top: BorderSide(color: Color(0x33E9C46A))),
@@ -1134,21 +1124,53 @@ class _BottomNavBar extends StatelessWidget {
           final color = isActive
               ? AppColors.goldBright
               : Colors.white.withValues(alpha: 0.6);
-          return Column(
+              
+          final child = Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(_icons[index], size: 22, color: color),
+              Icon(_icons[index], size: 20, color: color),
               const SizedBox(height: 5),
               Text(
                 _items[index],
                 style: TextStyle(
                   color: color,
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                  letterSpacing: -0.3,
                 ),
               ),
             ],
           );
+
+          if (_items[index] == 'Sair') {
+            return InkWell(
+              onTap: () async {
+                final shouldSignOut = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Sair da conta'),
+                    content: const Text('Deseja realmente sair da sua conta?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text('Cancelar'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        child: const Text('Sair'),
+                      ),
+                    ],
+                  ),
+                );
+                if (shouldSignOut == true) {
+                  await AuthService().signOut();
+                }
+              },
+              child: child,
+            );
+          }
+          
+          return child;
         }),
       ),
     );
