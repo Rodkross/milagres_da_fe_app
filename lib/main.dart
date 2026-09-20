@@ -16,10 +16,12 @@ import 'screens/livros_screen.dart';
 import 'screens/ofertas_screen.dart';
 import 'screens/convenio_screen.dart';
 import 'screens/perfil_screen.dart';
+import 'screens/devocional_screen.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'dart:math' as math;
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -700,6 +702,9 @@ class _HeaderVerseState extends State<_HeaderVerse> {
   String _verseText = 'Carregando...';
   String _verseReference = '';
   bool _isLoading = true;
+  
+  int _seed = 0;
+  bool _hasLiked = false;
 
   @override
   void initState() {
@@ -717,8 +722,8 @@ class _HeaderVerseState extends State<_HeaderVerse> {
       final nowBr = nowUtc.subtract(const Duration(hours: 3));
       
       // Semente diária (mesma para todos naquele dia)
-      final seed = nowBr.year * 10000 + nowBr.month * 100 + nowBr.day;
-      final random = math.Random(seed);
+      _seed = nowBr.year * 10000 + nowBr.month * 100 + nowBr.day;
+      final random = math.Random(_seed);
 
       // Escolher livro, capítulo e versículo
       final bookIndex = random.nextInt(data.length);
@@ -743,6 +748,17 @@ class _HeaderVerseState extends State<_HeaderVerse> {
         _isLoading = false;
       });
     }
+  }
+
+  void _likeVerse() {
+    if (_hasLiked) return;
+    setState(() => _hasLiked = true);
+    
+    // Incrementar no Firestore usando a semente como ID (reseta todo dia quando a semente muda)
+    FirebaseFirestore.instance
+        .collection('daily_verses')
+        .doc(_seed.toString())
+        .set({'likes': FieldValue.increment(1)}, SetOptions(merge: true));
   }
 
   @override
@@ -806,9 +822,63 @@ class _HeaderVerseState extends State<_HeaderVerse> {
           ),
         ],
         const SizedBox(height: 22),
-        const Align(
-          alignment: Alignment.centerRight,
-          child: _GoToDevotionalLink(),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Botão de Curtir com Stream do Firestore
+            if (_seed != 0)
+              StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance.collection('daily_verses').doc(_seed.toString()).snapshots(),
+                builder: (context, snapshot) {
+                  int likes = 0;
+                  if (snapshot.hasData && snapshot.data!.exists) {
+                    likes = (snapshot.data!.data() as Map<String, dynamic>)['likes'] ?? 0;
+                  }
+                  
+                  return InkWell(
+                    onTap: _likeVerse,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _hasLiked ? AppColors.goldBright.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: _hasLiked ? AppColors.goldBright : Colors.white.withValues(alpha: 0.2)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _hasLiked ? Icons.favorite : Icons.favorite_border,
+                            color: _hasLiked ? AppColors.goldBright : Colors.white70,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$likes',
+                            style: TextStyle(
+                              color: _hasLiked ? AppColors.goldBright : Colors.white70,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              )
+            else
+              const SizedBox.shrink(),
+              
+            Align(
+              alignment: Alignment.centerRight,
+              child: _GoToDevotionalLink(
+                verseText: _verseText,
+                verseReference: _verseReference,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -818,16 +888,25 @@ class _HeaderVerseState extends State<_HeaderVerse> {
 /// Atalho discreto para o devocional, em uma única linha. Hoje apenas exibe
 /// um aviso; no futuro será um link direto para a tela de devocional.
 class _GoToDevotionalLink extends StatelessWidget {
-  const _GoToDevotionalLink();
+  final String verseText;
+  final String verseReference;
+
+  const _GoToDevotionalLink({
+    required this.verseText,
+    required this.verseReference,
+  });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Devocional em breve!'),
-            duration: Duration(seconds: 2),
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DevocionalScreen(
+              verseText: verseText,
+              verseReference: verseReference,
+            ),
           ),
         );
       },
