@@ -14,10 +14,15 @@ import 'screens/quiz_screen.dart';
 import 'screens/oracao_screen.dart';
 import 'screens/livros_screen.dart';
 import 'screens/ofertas_screen.dart';
+import 'screens/convenio_screen.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await initializeDateFormatting('pt_BR', null);
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MilagresDaFeApp());
 }
 
@@ -1332,6 +1337,11 @@ class _BottomNavBar extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const OfertasScreen()),
+                );
+              } else if (_items[index] == 'Convênio') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ConvenioScreen()),
                 );
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
