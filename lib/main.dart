@@ -44,9 +44,9 @@ abstract final class AppInfo {
 const _shortcuts = <_ShortcutData>[
   _ShortcutData('Bíblia', Icons.menu_book_outlined),
   _ShortcutData('Cultos', Icons.groups_outlined),
-  _ShortcutData('Devocional', Icons.wb_sunny_outlined),
+  _ShortcutData('Quiz', Icons.lightbulb_outline),
   _ShortcutData('Oração', Icons.favorite_border),
-  _ShortcutData('Ofertas', Icons.volunteer_activism_outlined),
+  _ShortcutData('Convênio', Icons.handshake_outlined),
 ];
 
 /// Cartões da seção "Novidades" da tela inicial.
@@ -638,17 +638,22 @@ class _ShortcutStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: AppColors.navyDark,
-      padding: const EdgeInsets.only(top: 2, bottom: 18),
-      child: SizedBox(
-        height: 84,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          itemCount: _shortcuts.length,
-          separatorBuilder: (BuildContext context, int index) =>
-              const SizedBox(width: 18),
-          itemBuilder: (BuildContext context, int index) =>
-              _ShortcutItem(data: _shortcuts[index]),
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      alignment: Alignment.center,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(_shortcuts.length, (index) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: index == 0 ? 20 : 18,
+                right: index == _shortcuts.length - 1 ? 20 : 0,
+              ),
+              child: _ShortcutItem(data: _shortcuts[index]),
+            );
+          }),
         ),
       ),
     );
@@ -925,38 +930,51 @@ class _ShortcutItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 54,
-          height: 54,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppColors.goldPale,
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x33000000),
-                blurRadius: 10,
-                offset: Offset(0, 4),
-              ),
-            ],
+    return InkWell(
+      onTap: () {
+        // Placeholder para futuras telas.
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${data.label} em breve!'),
+            duration: const Duration(seconds: 2),
           ),
-          child: Icon(data.icon, color: AppColors.navy, size: 24),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          data.label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Color(0xE6FFFFFF),
-            fontSize: 11.5,
-            fontWeight: FontWeight.w600,
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.goldPale,
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x33000000),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Icon(data.icon, color: AppColors.navy, size: 24),
           ),
-        ),
-      ],
+          const SizedBox(height: 6),
+          Text(
+            data.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xE6FFFFFF),
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
