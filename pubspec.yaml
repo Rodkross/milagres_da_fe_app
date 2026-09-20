@@ -39,6 +39,7 @@ dependencies:
   firebase_auth: ^6.1.0
   firebase_messaging: ^16.0.2
   firebase_storage: ^13.0.2
+  syncfusion_flutter_pdfviewer: ^34.2.8
 
 dev_dependencies:
   flutter_test:

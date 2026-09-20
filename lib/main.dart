@@ -11,6 +11,8 @@ import 'services/auth_service.dart';
 import 'screens/cultos_screen.dart';
 import 'screens/biblia_screen.dart';
 import 'screens/quiz_screen.dart';
+import 'screens/oracao_screen.dart';
+import 'screens/livros_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1095,6 +1097,16 @@ class _ShortcutItem extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const QuizScreen()),
+          );
+        } else if (data.label == 'Oração') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const OracaoScreen()),
+          );
+        } else if (data.label == 'Livros') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const LivrosScreen()),
           );
         } else {
           // Placeholder para futuras telas.
