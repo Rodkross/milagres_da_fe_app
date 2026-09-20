@@ -1,8 +1,11 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
+import 'firebase_options.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MilagresDaFeApp());
 }
 
@@ -34,10 +37,10 @@ abstract final class AppInfo {
 /// Atalhos exibidos na faixa inferior do cabeçalho.
 const _shortcuts = <_ShortcutData>[
   _ShortcutData('Bíblia', Icons.menu_book_outlined),
-  _ShortcutData('Cultos', Icons.church_outlined),
+  _ShortcutData('Cultos', Icons.groups_outlined),
   _ShortcutData('Devocional', Icons.wb_sunny_outlined),
   _ShortcutData('Oração', Icons.favorite_border),
-  _ShortcutData('Dízimos', Icons.volunteer_activism_outlined),
+  _ShortcutData('Ofertas', Icons.volunteer_activism_outlined),
 ];
 
 /// Cartões da seção "Novidades" da tela inicial.
@@ -124,15 +127,11 @@ class HomeScreen extends StatelessWidget {
           ),
           const SliverPadding(
             padding: EdgeInsets.fromLTRB(20, 28, 20, 0),
-            sliver: SliverToBoxAdapter(
-              child: _HeroBanner(),
-            ),
+            sliver: SliverToBoxAdapter(child: _HeroBanner()),
           ),
           const SliverPadding(
             padding: EdgeInsets.fromLTRB(20, 28, 20, 0),
-            sliver: SliverToBoxAdapter(
-              child: _VerseCard(),
-            ),
+            sliver: SliverToBoxAdapter(child: _VerseCard()),
           ),
           const SliverPadding(
             padding: EdgeInsets.fromLTRB(20, 32, 20, 8),
@@ -335,11 +334,19 @@ class _Divider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(child: Divider(height: 1, thickness: 1, color: Color(0x33E9C46A))),
+        const Expanded(
+          child: Divider(height: 1, thickness: 1, color: Color(0x33E9C46A)),
+        ),
         const SizedBox(width: 14),
-        Icon(Icons.church, size: 18, color: AppColors.goldBright.withValues(alpha: 0.9)),
+        Icon(
+          Icons.menu_book,
+          size: 18,
+          color: AppColors.goldBright.withValues(alpha: 0.9),
+        ),
         const SizedBox(width: 14),
-        const Expanded(child: Divider(height: 1, thickness: 1, color: Color(0x33E9C46A))),
+        const Expanded(
+          child: Divider(height: 1, thickness: 1, color: Color(0x33E9C46A)),
+        ),
       ],
     );
   }
@@ -384,13 +391,12 @@ class _Banner extends StatelessWidget {
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
-                    fontStyle: FontStyle.italic,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Fé, devoção e comunidade',
+                  'Uma igreja da Família',
                   style: TextStyle(
                     color: AppColors.goldBright,
                     fontSize: 12.5,
@@ -410,7 +416,7 @@ class _Banner extends StatelessWidget {
               border: Border.all(color: AppColors.goldBright, width: 1.2),
             ),
             child: const Icon(
-              Icons.church_outlined,
+              Icons.menu_book_outlined,
               color: AppColors.goldBright,
               size: 28,
             ),
@@ -443,10 +449,15 @@ class _HeaderTitle extends StatelessWidget {
                 style: TextStyle(
                   color: AppColors.gold,
                   fontSize: 24,
-                  fontStyle: FontStyle.italic,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   letterSpacing: 0.5,
-                  shadows: [Shadow(color: Color(0x99000000), blurRadius: 10, offset: Offset(0, 3))],
+                  shadows: [
+                    Shadow(
+                      color: Color(0x99000000),
+                      blurRadius: 10,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -456,41 +467,33 @@ class _HeaderTitle extends StatelessWidget {
         ),
         SizedBox(height: 8),
         Text(
-          'Uma igreja da Família',
+          'CONGREGAÇÃO CRISTÃ',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white,
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.6,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 2.4,
           ),
         ),
         SizedBox(height: 6),
         Text(
-          'Juntos somos mais fortes',
+          'Pregação da Palavra e comunhão dos santos',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Color(0xB3FFFFFF), fontSize: 12.5),
+          style: TextStyle(color: Color(0xB3FFFFFF), fontSize: 12),
         ),
       ],
     );
   }
 }
 
+/// Pequena cruz como separador do título — símbolo central da fé cristã.
 class _Ornament extends StatelessWidget {
   const _Ornament();
 
   @override
   Widget build(BuildContext context) {
-    return Transform.rotate(
-      angle: math.pi / 4,
-      child: Container(
-        width: 11,
-        height: 11,
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColors.gold, width: 1.4),
-        ),
-      ),
-    );
+    return const Icon(Icons.add, size: 16, color: AppColors.gold);
   }
 }
 
@@ -646,7 +649,7 @@ class _HeroBanner extends StatelessWidget {
                     ),
                   ),
                   child: const Icon(
-                    Icons.church_outlined,
+                    Icons.menu_book_outlined,
                     size: 44,
                     color: AppColors.navyDeep,
                   ),
@@ -673,7 +676,10 @@ class _HeroBanner extends StatelessWidget {
                         '12 de junho • Cultos especiais',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 12.5),
+                        style: TextStyle(
+                          color: Color(0xCCFFFFFF),
+                          fontSize: 12.5,
+                        ),
                       ),
                     ],
                   ),
@@ -710,7 +716,9 @@ class _Dots extends StatelessWidget {
           height: 7,
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            color: isActive ? AppColors.gold : Colors.white.withValues(alpha: 0.35),
+            color: isActive
+                ? AppColors.gold
+                : Colors.white.withValues(alpha: 0.35),
             borderRadius: BorderRadius.circular(4),
           ),
         );
@@ -920,7 +928,11 @@ class _NewsCard extends StatelessWidget {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.gold),
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 13,
+                      color: AppColors.gold,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       data.date,
@@ -967,7 +979,9 @@ class _BottomNavBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: List.generate(_items.length, (index) {
           final isActive = index == 0;
-          final color = isActive ? AppColors.goldBright : Colors.white.withValues(alpha: 0.6);
+          final color = isActive
+              ? AppColors.goldBright
+              : Colors.white.withValues(alpha: 0.6);
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [

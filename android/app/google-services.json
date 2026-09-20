@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "949253877669",
+    "project_id": "milagres-da-fe-app",
+    "storage_bucket": "milagres-da-fe-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:949253877669:android:88529da051cb0f1e66824c",
+        "android_client_info": {
+          "package_name": "com.milagresdafe.milagres_da_fe_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "949253877669-j7rnp36l8ud4u374iv2vq76peudtve0s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDczWvQUmkUigcQWkfODdsS7D376gQoadg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "949253877669-j7rnp36l8ud4u374iv2vq76peudtve0s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
