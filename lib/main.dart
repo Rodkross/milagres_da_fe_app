@@ -13,6 +13,7 @@ import 'screens/biblia_screen.dart';
 import 'screens/quiz_screen.dart';
 import 'screens/oracao_screen.dart';
 import 'screens/livros_screen.dart';
+import 'screens/ofertas_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1297,7 +1298,7 @@ class _EscalaCard extends StatelessWidget {
 class _BottomNavBar extends StatelessWidget {
   const _BottomNavBar();
 
-  static const _items = <String>['Início', 'Doações', 'Convênio', 'Perfil'];
+  static const _items = <String>['Início', 'Ofertas', 'Convênio', 'Perfil'];
   static const _icons = <IconData>[
     Icons.home_rounded,
     Icons.volunteer_activism_outlined,
@@ -1326,12 +1327,20 @@ class _BottomNavBar extends StatelessWidget {
           return InkWell(
             onTap: () {
               if (isActive) return; // Início já está ativo
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${_items[index]} em breve!'),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
+              
+              if (_items[index] == 'Ofertas') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const OfertasScreen()),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${_items[index]} em breve!'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
             },
             borderRadius: BorderRadius.circular(8),
             child: Padding(
