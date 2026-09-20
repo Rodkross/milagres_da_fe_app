@@ -140,10 +140,6 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           const SliverPadding(
-            padding: EdgeInsets.fromLTRB(20, 28, 20, 0),
-            sliver: SliverToBoxAdapter(child: _VerseCard()),
-          ),
-          const SliverPadding(
             padding: EdgeInsets.fromLTRB(20, 32, 20, 8),
             sliver: SliverToBoxAdapter(
               child: _SectionHeader(
@@ -204,7 +200,7 @@ class _HomeHeader extends StatelessWidget {
                 const SizedBox(height: 18),
                 const _Divider(),
                 const SizedBox(height: 22),
-                const _HeaderTitle(),
+                const _HeaderVerse(),
               ],
             ),
           ),
@@ -490,73 +486,106 @@ class _Banner extends StatelessWidget {
   }
 }
 
-/// Título central com ornamento dourado, posicionado sobre a curva.
-class _HeaderTitle extends StatelessWidget {
-  const _HeaderTitle();
+/// Versículo do dia exibido no rodapé do cabeçalho, sobre o fundo escuro.
+class _HeaderVerse extends StatelessWidget {
+  const _HeaderVerse();
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       children: [
-        Row(
+        const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _Ornament(),
-            SizedBox(width: 12),
-            Flexible(
-              child: Text(
-                AppInfo.appName,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: AppColors.gold,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                  shadows: [
-                    Shadow(
-                      color: Color(0x99000000),
-                      blurRadius: 10,
-                      offset: Offset(0, 3),
-                    ),
-                  ],
-                ),
+            Icon(Icons.format_quote, color: AppColors.gold, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'VERSÍCULO DO DIA',
+              style: TextStyle(
+                color: AppColors.gold,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.8,
               ),
             ),
-            SizedBox(width: 12),
-            _Ornament(),
           ],
         ),
-        SizedBox(height: 8),
-        Text(
-          'CONGREGAÇÃO CRISTÃ',
+        const SizedBox(height: 12),
+        const Text(
+          '"A fé é o firme fundamento das coisas que se esperam."',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white,
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 2.4,
+            fontSize: 16,
+            height: 1.45,
+            fontStyle: FontStyle.italic,
+            shadows: [
+              Shadow(
+                color: Color(0x66000000),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
         ),
-        SizedBox(height: 6),
-        Text(
-          'Pregação da Palavra e comunhão dos santos',
+        const SizedBox(height: 8),
+        const Text(
+          'Hebreus 11:1',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Color(0xB3FFFFFF), fontSize: 12),
+          style: TextStyle(
+            color: AppColors.goldBright,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.4,
+          ),
+        ),
+        const SizedBox(height: 22),
+        const Align(
+          alignment: Alignment.centerRight,
+          child: _GoToDevotionalLink(),
         ),
       ],
     );
   }
 }
 
-/// Pequena cruz como separador do título — símbolo central da fé cristã.
-class _Ornament extends StatelessWidget {
-  const _Ornament();
+/// Atalho discreto para o devocional, em uma única linha. Hoje apenas exibe
+/// um aviso; no futuro será um link direto para a tela de devocional.
+class _GoToDevotionalLink extends StatelessWidget {
+  const _GoToDevotionalLink();
 
   @override
   Widget build(BuildContext context) {
-    return const Icon(Icons.add, size: 16, color: AppColors.gold);
+    return InkWell(
+      onTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Devocional em breve!'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(6),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.arrow_forward, color: AppColors.goldBright, size: 15),
+            SizedBox(width: 6),
+            Text(
+              'Ir para devocional',
+              style: TextStyle(
+                color: AppColors.goldBright,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -885,63 +914,6 @@ class _Dots extends StatelessWidget {
           ),
         );
       }),
-    );
-  }
-}
-
-/// Versículo do dia, também apenas visual.
-class _VerseCard extends StatelessWidget {
-  const _VerseCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.divider),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.format_quote, color: AppColors.gold, size: 22),
-              SizedBox(width: 8),
-              Text(
-                'Versículo do dia',
-                style: TextStyle(
-                  color: AppColors.navy,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.6,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          const Text(
-            '"A fé é o firme fundamento das coisas que se esperam."',
-            style: TextStyle(
-              color: AppColors.ink,
-              fontSize: 16,
-              height: 1.45,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Hebreus 11:1',
-            style: TextStyle(
-              color: AppColors.gold,
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.4,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
