@@ -314,16 +314,17 @@ class _Avatar extends StatelessWidget {
   }
 
   void _showUserMenu(BuildContext context) {
-    // Exemplo de lógica de permissões: no futuro, podemos checar custom claims
-    // do Firebase ou um documento do Firestore para definir 'isAdmin'.
-    final bool isAdmin = true; // Placeholder
+    final bool isAdmin = true; // Placeholder para permissões
+    final userName = user.displayName?.isNotEmpty == true ? user.displayName! : 'Usuário';
+    final userEmail = user.email ?? '';
+    final hasPhoto = user.photoURL != null && user.photoURL!.isNotEmpty;
 
     showModalBottomSheet(
       context: context,
+      backgroundColor: AppColors.navyDeep,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      backgroundColor: Colors.white,
       builder: (context) {
         return SafeArea(
           child: Padding(
@@ -331,58 +332,150 @@ class _Avatar extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Puxador do BottomSheet
+                // Puxador
                 Container(
-                  width: 40,
+                  width: 44,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(height: 16),
-                ListTile(
-                  leading: const Icon(Icons.person_outline, color: AppColors.navy),
-                  title: const Text('Meu Perfil', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 24),
+                // Cabeçalho do Menu
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.08),
+                          border: Border.all(color: AppColors.gold, width: 1.4),
+                          image: hasPhoto
+                              ? DecorationImage(
+                                  image: NetworkImage(user.photoURL!),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: !hasPhoto
+                            ? Text(
+                                _initials(),
+                                style: const TextStyle(
+                                  color: AppColors.goldBright,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 18,
+                                  letterSpacing: 0.5,
+                                ),
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              userName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            if (userEmail.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                userEmail,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.6),
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Divider(color: Colors.white.withValues(alpha: 0.08), height: 1),
+                const SizedBox(height: 8),
+                // Opções
+                _buildMenuItem(
+                  context,
+                  icon: Icons.person_outline,
+                  title: 'Meu Perfil',
                   onTap: () {
                     Navigator.pop(context);
-                    // TODO: Navegar para tela de perfil
                   },
                 ),
                 if (isAdmin)
-                  ListTile(
-                    leading: const Icon(Icons.admin_panel_settings_outlined, color: AppColors.navy),
-                    title: const Text('Painel de Administração', style: TextStyle(fontWeight: FontWeight.w600)),
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.admin_panel_settings_outlined,
+                    title: 'Painel de Administração',
                     onTap: () {
                       Navigator.pop(context);
-                      // TODO: Navegar para painel admin
                     },
                   ),
-                ListTile(
-                  leading: const Icon(Icons.settings_outlined, color: AppColors.navy),
-                  title: const Text('Configurações', style: TextStyle(fontWeight: FontWeight.w600)),
+                _buildMenuItem(
+                  context,
+                  icon: Icons.settings_outlined,
+                  title: 'Configurações',
                   onTap: () {
                     Navigator.pop(context);
-                    // TODO: Navegar para configurações
                   },
                 ),
-                const Divider(height: 24),
-                ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.red),
-                  title: const Text(
-                    'Sair da conta',
-                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
-                  ),
+                const SizedBox(height: 8),
+                Divider(color: Colors.white.withValues(alpha: 0.08), height: 1),
+                const SizedBox(height: 8),
+                _buildMenuItem(
+                  context,
+                  icon: Icons.logout_outlined,
+                  title: 'Sair da conta',
+                  isDestructive: true,
                   onTap: () {
                     Navigator.pop(context);
                     _confirmSignOut(context);
                   },
                 ),
+                const SizedBox(height: 8),
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildMenuItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    final color = isDestructive ? const Color(0xFFE57373) : Colors.white;
+    final iconColor = isDestructive ? const Color(0xFFE57373) : AppColors.goldBright;
+    
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 4),
+      leading: Icon(icon, color: iconColor, size: 24),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 15.5,
+        ),
+      ),
+      onTap: onTap,
     );
   }
 
