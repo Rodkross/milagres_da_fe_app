@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../main.dart'; // for AppColors
 
@@ -13,6 +14,22 @@ class OracaoScreen extends StatefulWidget {
 class _OracaoScreenState extends State<OracaoScreen> {
   final _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
+
+  Set<String> _prayedIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPrayedIds();
+  }
+
+  Future<void> _loadPrayedIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().where((k) => k.startsWith('prayed_for_')).toList();
+    setState(() {
+      _prayedIds = keys.map((k) => k.replaceFirst('prayed_for_', '')).toSet();
+    });
+  }
 
   void _showNewPrayerDialog() {
     final titleController = TextEditingController();
@@ -63,7 +80,7 @@ class _OracaoScreenState extends State<OracaoScreen> {
                     controller: descriptionController,
                     maxLines: 3,
                     decoration: const InputDecoration(
-                      labelText: 'Descrição (opcional)',
+                      labelText: 'Detalhes da Oração',
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -71,24 +88,23 @@ class _OracaoScreenState extends State<OracaoScreen> {
                   DropdownButtonFormField<String>(
                     value: selectedTarget,
                     decoration: const InputDecoration(
-                      labelText: 'Destinado a',
+                      labelText: 'Quem pode ver?',
                       border: OutlineInputBorder(),
                     ),
-                    items: targets.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                    items: targets.map((t) {
+                      return DropdownMenuItem(value: t, child: Text(t));
+                    }).toList(),
                     onChanged: (val) {
-                      if (val != null) setModalState(() => selectedTarget = val);
+                      setModalState(() => selectedTarget = val!);
                     },
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.navy,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
                     onPressed: isSubmitting
                         ? null
                         : () async {
-                            if (titleController.text.trim().isEmpty) return;
+                            if (titleController.text.trim().isEmpty || descriptionController.text.trim().isEmpty) return;
+
                             setModalState(() => isSubmitting = true);
                             try {
                               final user = _auth.currentUser;
@@ -101,20 +117,21 @@ class _OracaoScreenState extends State<OracaoScreen> {
                                 'prayedCount': 0,
                                 'createdAt': FieldValue.serverTimestamp(),
                               });
-                              if (context.mounted) {
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Pedido enviado com sucesso!')),
-                                );
-                              }
+                              if (context.mounted) Navigator.pop(context);
                             } catch (e) {
-                              setModalState(() => isSubmitting = false);
                               debugPrint('Erro ao salvar pedido: $e');
+                              setModalState(() => isSubmitting = false);
                             }
                           },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.navy,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                     child: isSubmitting
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Enviar Pedido', style: TextStyle(color: Colors.white, fontSize: 16)),
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: AppColors.goldBright, strokeWidth: 2))
+                        : const Text('Enviar Pedido', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(height: 24),
                 ],
@@ -127,9 +144,20 @@ class _OracaoScreenState extends State<OracaoScreen> {
   }
 
   Future<void> _prayFor(String docId, int currentCount) async {
+    if (_prayedIds.contains(docId)) return;
+    
+    // Atualiza localmente imediato
+    setState(() {
+      _prayedIds.add(docId);
+    });
+    
+    // Salva no SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('prayed_for_$docId', true);
+
     try {
       await _firestore.collection('prayers').doc(docId).update({
-        'prayedCount': currentCount + 1,
+        'prayedCount': FieldValue.increment(1),
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -252,15 +280,23 @@ class _OracaoScreenState extends State<OracaoScreen> {
                             '$prayedCount pessoa(s) orando',
                             style: const TextStyle(fontSize: 13, color: AppColors.gold, fontWeight: FontWeight.w600),
                           ),
-                          TextButton.icon(
-                            onPressed: () => _prayFor(doc.id, prayedCount),
-                            icon: const Icon(Icons.volunteer_activism, size: 18, color: AppColors.navy),
-                            label: const Text('Vou Orar', style: TextStyle(color: AppColors.navy)),
-                            style: TextButton.styleFrom(
-                              backgroundColor: AppColors.navy.withValues(alpha: 0.05),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                          )
+                          _prayedIds.contains(doc.id)
+                              ? const Row(
+                                  children: [
+                                    Icon(Icons.check_circle, size: 18, color: AppColors.goldBright),
+                                    SizedBox(width: 6),
+                                    Text('Você orou', style: TextStyle(color: AppColors.goldBright, fontWeight: FontWeight.bold)),
+                                  ],
+                                )
+                              : TextButton.icon(
+                                  onPressed: () => _prayFor(doc.id, prayedCount),
+                                  icon: const Icon(Icons.volunteer_activism, size: 18, color: AppColors.navy),
+                                  label: const Text('Vou Orar', style: TextStyle(color: AppColors.navy)),
+                                  style: TextButton.styleFrom(
+                                    backgroundColor: AppColors.navy.withValues(alpha: 0.05),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                )
                         ],
                       ),
                     ],

@@ -22,6 +22,7 @@ import 'dart:math' as math;
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -735,10 +736,15 @@ class _HeaderVerseState extends State<_HeaderVerse> {
       
       final verseIndex = random.nextInt(verses.length);
       final text = verses[verseIndex].toString();
+      
+      // Verificar se já foi curtido
+      final prefs = await SharedPreferences.getInstance();
+      final hasLikedBefore = prefs.getBool('liked_verse_$_seed') ?? false;
 
       setState(() {
         _verseText = '"$text"';
         _verseReference = '${book['name']} ${chapterIndex + 1}:${verseIndex + 1}';
+        _hasLiked = hasLikedBefore;
         _isLoading = false;
       });
     } catch (e) {
@@ -750,11 +756,17 @@ class _HeaderVerseState extends State<_HeaderVerse> {
     }
   }
 
-  void _likeVerse() {
+  void _likeVerse() async {
     if (_hasLiked) return;
+    
+    // Atualiza a tela instantaneamente
     setState(() => _hasLiked = true);
     
-    // Incrementar no Firestore usando a semente como ID (reseta todo dia quando a semente muda)
+    // Salva no disco do celular que este versículo foi curtido
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('liked_verse_$_seed', true);
+    
+    // Incrementar no Firestore usando a semente como ID
     FirebaseFirestore.instance
         .collection('daily_verses')
         .doc(_seed.toString())
