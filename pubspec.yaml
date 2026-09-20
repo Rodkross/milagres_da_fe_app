@@ -64,6 +64,7 @@ flutter:
   # Imagens da programação exibidas no carrossel da tela inicial.
   assets:
     - assets/programacao/
+    - assets/biblia_jfa.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

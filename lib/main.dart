@@ -9,6 +9,7 @@ import 'firebase_options.dart';
 import 'models/programacao_item.dart';
 import 'services/auth_service.dart';
 import 'screens/cultos_screen.dart';
+import 'screens/biblia_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1083,6 +1084,11 @@ class _ShortcutItem extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const CultosScreen()),
+          );
+        } else if (data.label == 'Bíblia') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const BibliaScreen()),
           );
         } else {
           // Placeholder para futuras telas.
