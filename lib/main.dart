@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
+import 'dart:async';
+
+import 'auth_gate.dart';
 import 'firebase_options.dart';
+import 'models/programacao_item.dart';
+import 'services/auth_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -104,14 +110,16 @@ class MilagresDaFeApp extends StatelessWidget {
         ),
         fontFamily: 'Roboto',
       ),
-      home: const HomeScreen(),
+      home: AuthGate(authService: AuthService()),
     );
   }
 }
 
-/// Tela inicial — apenas composição visual, sem navegação nem integrações.
+/// Tela inicial — exibe os dados do usuário autenticado.
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, required this.user});
+
+  final User user;
 
   @override
   Widget build(BuildContext context) {
@@ -119,7 +127,7 @@ class HomeScreen extends StatelessWidget {
       backgroundColor: AppColors.surface,
       body: CustomScrollView(
         slivers: [
-          const SliverToBoxAdapter(child: _HomeHeader()),
+          SliverToBoxAdapter(child: _HomeHeader(user: user)),
           const SliverToBoxAdapter(child: _ShortcutStrip()),
           const SliverPadding(
             padding: EdgeInsets.fromLTRB(20, 28, 20, 0),
@@ -127,7 +135,9 @@ class HomeScreen extends StatelessWidget {
           ),
           const SliverPadding(
             padding: EdgeInsets.fromLTRB(20, 28, 20, 0),
-            sliver: SliverToBoxAdapter(child: _HeroBanner()),
+            sliver: SliverToBoxAdapter(
+              child: _HeroBanner(items: programacaoAtual),
+            ),
           ),
           const SliverPadding(
             padding: EdgeInsets.fromLTRB(20, 28, 20, 0),
@@ -164,7 +174,9 @@ class HomeScreen extends StatelessWidget {
 
 /// Cabeçalho azul-marinho com faixa dourada, saudação, avatar e título curvo.
 class _HomeHeader extends StatelessWidget {
-  const _HomeHeader();
+  const _HomeHeader({required this.user});
+
+  final User user;
 
   @override
   Widget build(BuildContext context) {
@@ -184,7 +196,7 @@ class _HomeHeader extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(20, topPadding + 12, 20, 20),
             child: Column(
               children: [
-                const _TopBar(),
+                _TopBar(user: user),
                 const SizedBox(height: 18),
                 const _Divider(),
                 const SizedBox(height: 18),
@@ -204,36 +216,45 @@ class _HomeHeader extends StatelessWidget {
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar();
+  const _TopBar({required this.user});
+
+  final User user;
 
   @override
   Widget build(BuildContext context) {
+    final displayName = user.displayName?.trim();
+    final greeting = (displayName != null && displayName.isNotEmpty)
+        ? 'Bem-vindo(a), $displayName'
+        : AppInfo.welcome;
+
     return Row(
       children: [
-        const _Avatar(),
+        _Avatar(user: user),
         const SizedBox(width: 12),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                AppInfo.welcome,
+                greeting,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 15,
                   height: 1.25,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
               Text(
-                AppInfo.tagline,
-                style: TextStyle(
+                user.email ?? AppInfo.tagline,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
                   color: AppColors.goldBright,
                   fontSize: 12,
-                  letterSpacing: 0.6,
+                  letterSpacing: 0.3,
                 ),
               ),
             ],
@@ -247,26 +268,68 @@ class _TopBar extends StatelessWidget {
 }
 
 class _Avatar extends StatelessWidget {
-  const _Avatar();
+  const _Avatar({required this.user});
+
+  final User user;
+
+  /// Gera as iniciais a partir do nome (ou do e-mail, como fallback).
+  String _initials() {
+    final name = user.displayName?.trim();
+    if (name != null && name.isNotEmpty) {
+      final parts = name.split(RegExp(r'\s+'))..removeWhere((p) => p.isEmpty);
+      if (parts.length >= 2) {
+        return (parts.first[0] + parts[1][0]).toUpperCase();
+      }
+      return name.substring(0, name.length >= 2 ? 2 : 1).toUpperCase();
+    }
+    final email = user.email ?? '';
+    return email.isEmpty ? '?' : email[0].toUpperCase();
+  }
+
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final shouldSignOut = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sair da conta'),
+        content: const Text('Deseja realmente sair da sua conta?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sair'),
+          ),
+        ],
+      ),
+    );
+    if (shouldSignOut == true) {
+      await AuthService().signOut();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 46,
-      height: 46,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withValues(alpha: 0.08),
-        border: Border.all(color: AppColors.gold, width: 1.4),
-      ),
-      child: const Text(
-        AppInfo.userInitials,
-        style: TextStyle(
-          color: AppColors.goldBright,
-          fontWeight: FontWeight.w700,
-          fontSize: 15,
-          letterSpacing: 0.5,
+    return GestureDetector(
+      onTap: () => _confirmSignOut(context),
+      child: Container(
+        width: 46,
+        height: 46,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white.withValues(alpha: 0.08),
+          border: Border.all(color: AppColors.gold, width: 1.4),
+        ),
+        child: Text(
+          _initials(),
+          style: const TextStyle(
+            color: AppColors.goldBright,
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+            letterSpacing: 0.5,
+          ),
         ),
       ),
     );
@@ -600,101 +663,200 @@ class _SearchField extends StatelessWidget {
   }
 }
 
-/// Banners principais em formato de carrossel estático.
-class _HeroBanner extends StatelessWidget {
-  const _HeroBanner();
+/// Carrossel de imagens da programação, com títulos sobrepostos.
+///
+/// Hoje consome [programacaoAtual] (imagens locais). Quando a programação
+/// passar a vir do Firestore, basta fornecer outra lista para [items].
+class _HeroBanner extends StatefulWidget {
+  const _HeroBanner({required this.items});
+
+  final List<ProgramacaoItem> items;
+
+  @override
+  State<_HeroBanner> createState() => _HeroBannerState();
+}
+
+class _HeroBannerState extends State<_HeroBanner> {
+  static const _autoPlayInterval = Duration(seconds: 4);
+
+  final PageController _controller = PageController();
+  Timer? _timer;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _startAutoPlay();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _startAutoPlay() {
+    if (widget.items.length < 2) return;
+    _timer?.cancel();
+    _timer = Timer.periodic(_autoPlayInterval, (_) {
+      if (!_controller.hasClients) return;
+      final next = (_currentPage + 1) % widget.items.length;
+      _controller.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final items = widget.items;
+    if (items.isEmpty) return const SizedBox.shrink();
+
     return AspectRatio(
       aspectRatio: 1.72,
-      child: Container(
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.navy, AppColors.navyDark],
-          ),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x260B2E5B),
-              blurRadius: 20,
-              offset: Offset(0, 10),
-            ),
-          ],
-        ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
         child: Stack(
           children: [
+            PageView.builder(
+              controller: _controller,
+              itemCount: items.length,
+              onPageChanged: (index) => setState(() => _currentPage = index),
+              itemBuilder: (context, index) =>
+                  _ProgramacaoSlide(item: items[index]),
+            ),
             Positioned(
-              right: -18,
-              bottom: -22,
-              child: Icon(
-                Icons.auto_awesome,
-                size: 132,
-                color: AppColors.gold.withValues(alpha: 0.14),
-              ),
-            ),
-            Row(
-              children: [
-                Container(
-                  width: 104,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [AppColors.goldBright, AppColors.gold],
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.menu_book_outlined,
-                    size: 44,
-                    color: AppColors.navyDeep,
-                  ),
-                ),
-                const SizedBox(width: 18),
-                const Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'SEMANA DE\nAVIVAMENTO',
-                        maxLines: 3,
-                        style: TextStyle(
-                          color: AppColors.gold,
-                          fontSize: 20,
-                          height: 1.15,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        '12 de junho • Cultos especiais',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Color(0xCCFFFFFF),
-                          fontSize: 12.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const Positioned(
               left: 0,
               right: 0,
-              bottom: 0,
-              child: Center(child: _Dots(count: 3, activeIndex: 0)),
+              bottom: 12,
+              child: Center(
+                child: _Dots(count: items.length, activeIndex: _currentPage),
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Slide individual: imagem de fundo com título e data sobrepostos.
+class _ProgramacaoSlide extends StatelessWidget {
+  const _ProgramacaoSlide({required this.item});
+
+  final ProgramacaoItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = item.imageProvider;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Imagem de fundo (local ou remota) com fallback visual.
+        if (provider != null)
+          Image(
+            image: provider,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) =>
+                const _SlideFallback(),
+            loadingBuilder: (context, child, progress) {
+              if (progress == null) return child;
+              return const _SlideFallback(showSpinner: true);
+            },
+          )
+        else
+          const _SlideFallback(),
+        // Gradiente escuro para garantir a leitura do texto sobre a imagem.
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0x000A0A1A), Color(0xCC051733)],
+              stops: [0.45, 1.0],
+            ),
+          ),
+        ),
+        // Título e data sobrepostos na base da imagem.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(22, 22, 22, 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(
+                item.titulo,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  height: 1.15,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.4,
+                  shadows: [
+                    Shadow(
+                      color: Color(0x99000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                item.data,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.goldBright,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Fundo exibido enquanto a imagem carrega ou quando ela falha.
+class _SlideFallback extends StatelessWidget {
+  const _SlideFallback({this.showSpinner = false});
+
+  final bool showSpinner;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.navy, AppColors.navyDark],
+        ),
+      ),
+      child: showSpinner
+          ? const Center(
+              child: SizedBox(
+                width: 26,
+                height: 26,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppColors.goldBright,
+                  ),
+                ),
+              ),
+            )
+          : null,
     );
   }
 }
