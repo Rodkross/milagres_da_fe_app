@@ -17,6 +17,9 @@ import 'screens/ofertas_screen.dart';
 import 'screens/convenio_screen.dart';
 import 'screens/perfil_screen.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'dart:math' as math;
+import 'dart:convert';
+import 'package:flutter/services.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -686,8 +689,61 @@ class _Banner extends StatelessWidget {
 }
 
 /// Versículo do dia exibido no rodapé do cabeçalho, sobre o fundo escuro.
-class _HeaderVerse extends StatelessWidget {
+class _HeaderVerse extends StatefulWidget {
   const _HeaderVerse();
+
+  @override
+  State<_HeaderVerse> createState() => _HeaderVerseState();
+}
+
+class _HeaderVerseState extends State<_HeaderVerse> {
+  String _verseText = 'Carregando...';
+  String _verseReference = '';
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDailyVerse();
+  }
+
+  Future<void> _loadDailyVerse() async {
+    try {
+      final jsonString = await rootBundle.loadString('assets/biblia_jfa.json');
+      final data = json.decode(jsonString) as List<dynamic>;
+
+      // Calcular a data atual no fuso brasileiro (UTC-3)
+      final nowUtc = DateTime.now().toUtc();
+      final nowBr = nowUtc.subtract(const Duration(hours: 3));
+      
+      // Semente diária (mesma para todos naquele dia)
+      final seed = nowBr.year * 10000 + nowBr.month * 100 + nowBr.day;
+      final random = math.Random(seed);
+
+      // Escolher livro, capítulo e versículo
+      final bookIndex = random.nextInt(data.length);
+      final book = data[bookIndex];
+      final chapters = book['chapters'] as List<dynamic>;
+      
+      final chapterIndex = random.nextInt(chapters.length);
+      final verses = chapters[chapterIndex] as List<dynamic>;
+      
+      final verseIndex = random.nextInt(verses.length);
+      final text = verses[verseIndex].toString();
+
+      setState(() {
+        _verseText = '"$text"';
+        _verseReference = '${book['name']} ${chapterIndex + 1}:${verseIndex + 1}';
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _verseText = '"A fé é o firme fundamento das coisas que se esperam."';
+        _verseReference = 'Hebreus 11:1';
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -710,34 +766,45 @@ class _HeaderVerse extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        const Text(
-          '"A fé é o firme fundamento das coisas que se esperam."',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            height: 1.45,
-            fontStyle: FontStyle.italic,
-            shadows: [
-              Shadow(
-                color: Color(0x66000000),
-                blurRadius: 8,
-                offset: Offset(0, 2),
-              ),
-            ],
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(color: AppColors.goldBright, strokeWidth: 2),
+            ),
+          )
+        else ...[
+          Text(
+            _verseText,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              height: 1.45,
+              fontStyle: FontStyle.italic,
+              shadows: [
+                Shadow(
+                  color: Color(0x66000000),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Hebreus 11:1',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: AppColors.goldBright,
-            fontSize: 12.5,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.4,
+          const SizedBox(height: 8),
+          Text(
+            _verseReference,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: AppColors.goldBright,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+            ),
           ),
-        ),
+        ],
         const SizedBox(height: 22),
         const Align(
           alignment: Alignment.centerRight,
