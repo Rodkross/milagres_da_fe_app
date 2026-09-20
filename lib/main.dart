@@ -1299,20 +1299,35 @@ class _BottomNavBar extends StatelessWidget {
               ? AppColors.goldBright
               : Colors.white.withValues(alpha: 0.6);
               
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(_icons[index], size: 22, color: color),
-              const SizedBox(height: 5),
-              Text(
-                _items[index],
-                style: TextStyle(
-                  color: color,
-                  fontSize: 11,
-                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+          return InkWell(
+            onTap: () {
+              if (isActive) return; // Início já está ativo
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${_items[index]} em breve!'),
+                  duration: const Duration(seconds: 2),
                 ),
+              );
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(_icons[index], size: 22, color: color),
+                  const SizedBox(height: 5),
+                  Text(
+                    _items[index],
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 11,
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           );
         }),
       ),
