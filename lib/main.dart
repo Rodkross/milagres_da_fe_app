@@ -15,6 +15,7 @@ import 'screens/oracao_screen.dart';
 import 'screens/livros_screen.dart';
 import 'screens/ofertas_screen.dart';
 import 'screens/convenio_screen.dart';
+import 'screens/perfil_screen.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 Future<void> main() async {
@@ -423,6 +424,10 @@ class _Avatar extends StatelessWidget {
                   title: 'Meu Perfil',
                   onTap: () {
                     Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PerfilScreen()),
+                    );
                   },
                 ),
                 if (isAdmin)
@@ -1342,6 +1347,11 @@ class _BottomNavBar extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const ConvenioScreen()),
+                );
+              } else if (_items[index] == 'Perfil') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const PerfilScreen()),
                 );
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
