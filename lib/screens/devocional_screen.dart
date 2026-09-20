@@ -119,7 +119,7 @@ Efésios 2:8-9, Gálatas 2:16, Hebreus 11:1
                   bottomRight: Radius.circular(32),
                 ),
                 image: DecorationImage(
-                  image: const NetworkImage('https://images.unsplash.com/photo-1507490089868-6d4538d61b36?q=80&w=800&auto=format&fit=crop'),
+                  image: const NetworkImage('https://images.unsplash.com/photo-1490730141103-6cac27aaab94?q=80&w=800&auto=format&fit=crop'),
                   fit: BoxFit.cover,
                   colorFilter: ColorFilter.mode(
                     AppColors.navyDeep.withValues(alpha: 0.85), 
@@ -131,33 +131,51 @@ Efésios 2:8-9, Gálatas 2:16, Hebreus 11:1
                 children: [
                   const Icon(Icons.menu_book_rounded, color: AppColors.goldBright, size: 36),
                   const SizedBox(height: 20),
-                  Text(
-                    '"${widget.verseText}"',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontFamily: 'Georgia',
-                      fontStyle: FontStyle.italic,
-                      height: 1.5,
-                      shadows: [Shadow(color: Colors.black87, blurRadius: 6, offset: Offset(0, 3))],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.goldBright.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.goldBright.withValues(alpha: 0.5)),
-                    ),
-                    child: Text(
-                      widget.verseReference.toUpperCase(),
-                      style: const TextStyle(
-                        color: AppColors.goldBright,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.2,
+                  InkWell(
+                    onTap: () => _openBibleReference(context, widget.verseReference),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                      child: Column(
+                        children: [
+                          Text(
+                            '"${widget.verseText.replaceAll('"', '')}"',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontFamily: 'Georgia',
+                              fontStyle: FontStyle.italic,
+                              height: 1.5,
+                              shadows: [Shadow(color: Colors.black87, blurRadius: 6, offset: Offset(0, 3))],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.goldBright.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: AppColors.goldBright.withValues(alpha: 0.5)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.menu_book, color: AppColors.goldBright, size: 14),
+                                const SizedBox(width: 8),
+                                Text(
+                                  widget.verseReference.toUpperCase(),
+                                  style: const TextStyle(
+                                    color: AppColors.goldBright,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

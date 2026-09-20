@@ -736,14 +736,15 @@ class _HeaderVerseState extends State<_HeaderVerse> {
       
       final verseIndex = random.nextInt(verses.length);
       final text = verses[verseIndex].toString();
+      final calculatedReference = '${book['name']} ${chapterIndex + 1}:${verseIndex + 1}';
       
       // Verificar se já foi curtido
       final prefs = await SharedPreferences.getInstance();
-      final hasLikedBefore = prefs.getBool('liked_verse_$_seed') ?? false;
+      final hasLikedBefore = prefs.getBool('liked_verse_$calculatedReference') ?? false;
 
       setState(() {
         _verseText = '"$text"';
-        _verseReference = '${book['name']} ${chapterIndex + 1}:${verseIndex + 1}';
+        _verseReference = calculatedReference;
         _hasLiked = hasLikedBefore;
         _isLoading = false;
       });
@@ -764,12 +765,12 @@ class _HeaderVerseState extends State<_HeaderVerse> {
     
     // Salva no disco do celular que este versículo foi curtido
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('liked_verse_$_seed', true);
+    await prefs.setBool('liked_verse_$_verseReference', true);
     
-    // Incrementar no Firestore usando a semente como ID
+    // Incrementar no Firestore usando a REFERÊNCIA como ID (ex: "Hebreus 11:1")
     FirebaseFirestore.instance
-        .collection('daily_verses')
-        .doc(_seed.toString())
+        .collection('verses_likes')
+        .doc(_verseReference.replaceAll('/', '-')) // Evitar barras no ID
         .set({'likes': FieldValue.increment(1)}, SetOptions(merge: true));
   }
 
@@ -838,9 +839,9 @@ class _HeaderVerseState extends State<_HeaderVerse> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             // Botão de Curtir com Stream do Firestore
-            if (_seed != 0)
+            if (_verseReference.isNotEmpty)
               StreamBuilder<DocumentSnapshot>(
-                stream: FirebaseFirestore.instance.collection('daily_verses').doc(_seed.toString()).snapshots(),
+                stream: FirebaseFirestore.instance.collection('verses_likes').doc(_verseReference.replaceAll('/', '-')).snapshots(),
                 builder: (context, snapshot) {
                   int likes = 0;
                   if (snapshot.hasData && snapshot.data!.exists) {
