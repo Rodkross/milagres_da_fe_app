@@ -313,10 +313,85 @@ class _Avatar extends StatelessWidget {
     }
   }
 
+  void _showUserMenu(BuildContext context) {
+    // Exemplo de lógica de permissões: no futuro, podemos checar custom claims
+    // do Firebase ou um documento do Firestore para definir 'isAdmin'.
+    final bool isAdmin = true; // Placeholder
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Puxador do BottomSheet
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.person_outline, color: AppColors.navy),
+                  title: const Text('Meu Perfil', style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    // TODO: Navegar para tela de perfil
+                  },
+                ),
+                if (isAdmin)
+                  ListTile(
+                    leading: const Icon(Icons.admin_panel_settings_outlined, color: AppColors.navy),
+                    title: const Text('Painel de Administração', style: TextStyle(fontWeight: FontWeight.w600)),
+                    onTap: () {
+                      Navigator.pop(context);
+                      // TODO: Navegar para painel admin
+                    },
+                  ),
+                ListTile(
+                  leading: const Icon(Icons.settings_outlined, color: AppColors.navy),
+                  title: const Text('Configurações', style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    // TODO: Navegar para configurações
+                  },
+                ),
+                const Divider(height: 24),
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: const Text(
+                    'Sair da conta',
+                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _confirmSignOut(context);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hasPhoto = user.photoURL != null && user.photoURL!.isNotEmpty;
+
     return GestureDetector(
-      onTap: () => _confirmSignOut(context),
+      onTap: () => _showUserMenu(context),
       child: Container(
         width: 46,
         height: 46,
@@ -325,16 +400,24 @@ class _Avatar extends StatelessWidget {
           shape: BoxShape.circle,
           color: Colors.white.withValues(alpha: 0.08),
           border: Border.all(color: AppColors.gold, width: 1.4),
+          image: hasPhoto
+              ? DecorationImage(
+                  image: NetworkImage(user.photoURL!),
+                  fit: BoxFit.cover,
+                )
+              : null,
         ),
-        child: Text(
-          _initials(),
-          style: const TextStyle(
-            color: AppColors.goldBright,
-            fontWeight: FontWeight.w700,
-            fontSize: 15,
-            letterSpacing: 0.5,
-          ),
-        ),
+        child: !hasPhoto
+            ? Text(
+                _initials(),
+                style: const TextStyle(
+                  color: AppColors.goldBright,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                  letterSpacing: 0.5,
+                ),
+              )
+            : null,
       ),
     );
   }
@@ -1097,14 +1180,12 @@ class _EscalaCard extends StatelessWidget {
 class _BottomNavBar extends StatelessWidget {
   const _BottomNavBar();
 
-  static const _items = <String>['Início', 'Agenda', 'Doações', 'Convênio', 'Perfil', 'Sair'];
+  static const _items = <String>['Início', 'Doações', 'Convênio', 'Perfil'];
   static const _icons = <IconData>[
     Icons.home_rounded,
-    Icons.event_note_outlined,
     Icons.volunteer_activism_outlined,
     Icons.handshake_outlined,
     Icons.person_outline,
-    Icons.logout_outlined,
   ];
 
   @override
@@ -1112,7 +1193,7 @@ class _BottomNavBar extends StatelessWidget {
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(10, 14, 10, 14 + bottomPadding),
+      padding: EdgeInsets.fromLTRB(16, 14, 16, 14 + bottomPadding),
       decoration: const BoxDecoration(
         color: AppColors.navyDeep,
         border: Border(top: BorderSide(color: Color(0x33E9C46A))),
@@ -1125,52 +1206,21 @@ class _BottomNavBar extends StatelessWidget {
               ? AppColors.goldBright
               : Colors.white.withValues(alpha: 0.6);
               
-          final child = Column(
+          return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(_icons[index], size: 20, color: color),
+              Icon(_icons[index], size: 22, color: color),
               const SizedBox(height: 5),
               Text(
                 _items[index],
                 style: TextStyle(
                   color: color,
-                  fontSize: 10,
+                  fontSize: 11,
                   fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                  letterSpacing: -0.3,
                 ),
               ),
             ],
           );
-
-          if (_items[index] == 'Sair') {
-            return InkWell(
-              onTap: () async {
-                final shouldSignOut = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Sair da conta'),
-                    content: const Text('Deseja realmente sair da sua conta?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(false),
-                        child: const Text('Cancelar'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(true),
-                        child: const Text('Sair'),
-                      ),
-                    ],
-                  ),
-                );
-                if (shouldSignOut == true) {
-                  await AuthService().signOut();
-                }
-              },
-              child: child,
-            );
-          }
-          
-          return child;
         }),
       ),
     );
