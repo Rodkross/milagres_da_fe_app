@@ -10,6 +10,7 @@ import 'models/programacao_item.dart';
 import 'services/auth_service.dart';
 import 'screens/cultos_screen.dart';
 import 'screens/biblia_screen.dart';
+import 'screens/quiz_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1089,6 +1090,11 @@ class _ShortcutItem extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const BibliaScreen()),
+          );
+        } else if (data.label == 'Quiz') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const QuizScreen()),
           );
         } else {
           // Placeholder para futuras telas.
