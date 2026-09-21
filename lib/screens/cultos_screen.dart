@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../main.dart'; // Para acessar AppColors
 
 class CultosScreen extends StatelessWidget {
@@ -19,44 +20,38 @@ class CultosScreen extends StatelessWidget {
         ),
         iconTheme: const IconThemeData(color: AppColors.goldBright),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: const [
-          _CultoCard(
-            title: 'Culto de Libertação',
-            day: 'Toda Quinta',
-            time: '19:00',
-            location: 'Igreja',
-          ),
-          SizedBox(height: 16),
-          _CultoCard(
-            title: 'Culto da Família e Adoração',
-            day: 'Todo Domingo',
-            time: '18:00',
-            location: 'Igreja',
-          ),
-          SizedBox(height: 16),
-          _CultoCard(
-            title: 'Culto de Consagração',
-            day: 'Último Sábado do mês',
-            time: '09:00',
-            location: 'Igreja',
-          ),
-          SizedBox(height: 16),
-          _CultoCard(
-            title: 'Santa Ceia',
-            day: 'Todo Segundo Domingo',
-            time: '09:00',
-            location: 'Igreja',
-          ),
-          SizedBox(height: 16),
-          _CultoCard(
-            title: 'Célula',
-            day: 'Toda Segunda',
-            time: '19:30',
-            location: 'Casa dos Pastores',
-          ),
-        ],
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('cultos').orderBy('order').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: AppColors.goldBright));
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Erro ao carregar cultos: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
+          }
+
+          final docs = snapshot.data?.docs ?? [];
+          
+          if (docs.isEmpty) {
+            return const Center(child: Text('Nenhum culto cadastrado ainda.', style: TextStyle(color: AppColors.muted)));
+          }
+
+          return ListView.separated(
+            padding: const EdgeInsets.all(20),
+            itemCount: docs.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 16),
+            itemBuilder: (context, index) {
+              final data = docs[index].data() as Map<String, dynamic>;
+              return _CultoCard(
+                title: data['title'] ?? '',
+                day: data['day'] ?? '',
+                time: data['time'] ?? '',
+                location: data['location'] ?? '',
+                imageUrl: data['imageUrl'],
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -96,24 +91,6 @@ class _CultoCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Área reservada para a imagem
-            Container(
-              width: 110,
-              decoration: const BoxDecoration(
-                color: AppColors.surface, // Cor de fundo do placeholder
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  bottomLeft: Radius.circular(20),
-                ),
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.image_outlined,
-                  color: AppColors.muted,
-                  size: 32,
-                ),
-              ),
-            ),
             // Área de conteúdo
             Expanded(
               child: Padding(
@@ -181,6 +158,32 @@ class _CultoCard extends StatelessWidget {
                   ],
                 ),
               ),
+            ),
+            // Área da imagem (direita)
+            Container(
+              width: 110,
+              decoration: BoxDecoration(
+                color: AppColors.surface, // Cor de fundo
+                borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(20),
+                  bottomRight: Radius.circular(20),
+                ),
+                image: imageUrl != null && imageUrl!.isNotEmpty
+                    ? DecorationImage(
+                        image: NetworkImage(imageUrl!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: imageUrl == null || imageUrl!.isEmpty
+                  ? const Center(
+                      child: Icon(
+                        Icons.image_outlined,
+                        color: AppColors.muted,
+                        size: 32,
+                      ),
+                    )
+                  : null,
             ),
           ],
         ),

@@ -160,10 +160,39 @@ class HomeScreen extends StatelessWidget {
         slivers: [
           SliverToBoxAdapter(child: _HomeHeader(user: user)),
           const SliverToBoxAdapter(child: _ShortcutStrip()),
-          const SliverPadding(
-            padding: EdgeInsets.fromLTRB(20, 28, 20, 0),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
             sliver: SliverToBoxAdapter(
-              child: _HeroBanner(items: programacaoAtual),
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('cultos').orderBy('order').snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox(
+                      height: 200,
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  
+                  final docs = snapshot.data?.docs ?? [];
+                  
+                  // Se não houver nenhum culto, usa os itens estáticos como fallback provisório,
+                  // ou retorna uma box vazia.
+                  if (docs.isEmpty) {
+                    return const _HeroBanner(items: programacaoAtual);
+                  }
+
+                  final List<ProgramacaoItem> items = docs.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    return ProgramacaoItem(
+                      titulo: data['title'] ?? 'Culto',
+                      data: '${data['day'] ?? ''} • ${data['time'] ?? ''}',
+                      imageUrl: data['imageUrl'],
+                    );
+                  }).toList();
+
+                  return _HeroBanner(items: items);
+                },
+              ),
             ),
           ),
           const SliverPadding(
@@ -1101,6 +1130,20 @@ class _HeroBannerState extends State<_HeroBanner> {
   void initState() {
     super.initState();
     _startAutoPlay();
+  }
+
+  @override
+  void didUpdateWidget(_HeroBanner oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.items.length != widget.items.length) {
+      if (_currentPage >= widget.items.length) {
+        _currentPage = widget.items.isEmpty ? 0 : widget.items.length - 1;
+        if (_controller.hasClients) {
+          _controller.jumpToPage(_currentPage);
+        }
+      }
+      _startAutoPlay();
+    }
   }
 
   @override

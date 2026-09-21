@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../main.dart' show AppColors;
 import 'admin_screen.dart'; // The one we built with member list
-import 'convenio_screen.dart'; // The cantina screen
+import 'convenio_screen.dart';
+import 'admin_cultos_screen.dart'; // The cantina screen
 
 class DashboardAdminScreen extends StatelessWidget {
   const DashboardAdminScreen({super.key});
@@ -79,6 +80,16 @@ class DashboardAdminScreen extends StatelessWidget {
             icon: Icons.people_alt_outlined,
             onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminScreen()));
+            },
+          ),
+          const SizedBox(height: 16),
+          _buildDashboardCard(
+            context,
+            title: 'Cultos / Programação',
+            subtitle: 'Gerencie os cultos e eventos na tela inicial',
+            icon: Icons.calendar_month_outlined,
+            onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminCultosScreen()));
             },
           ),
           const SizedBox(height: 16),
