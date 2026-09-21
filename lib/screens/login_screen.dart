@@ -24,6 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String? _errorMessage;
   String _selectedTitle = 'Membro';
+  String _selectedGender = 'Masculino';
 
   final List<String> _titles = [
     'Membro',

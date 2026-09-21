@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'helpers.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -257,26 +258,30 @@ class _TopBar extends StatelessWidget {
         String titleText = greeting;
         String subtitleText = user.email ?? AppInfo.tagline;
         bool isAdmin = false;
+        String? currentPhotoUrl;
 
         if (snapshot.hasData && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>?;
           if (data != null) {
             final eccTitle = data['ecclesiasticalTitle'] as String?;
+            final gender = data['gender'] as String? ?? 'Masculino';
             final deptAccess = data['departmentAccess'] as String?;
             isAdmin = (deptAccess == 'presidencia' || deptAccess == 'secretaria');
 
             if (eccTitle != null && eccTitle != 'Membro' && eccTitle != 'Visitante' && firstName != null) {
-              titleText = '$eccTitle $firstName';
+              final resolvedTitle = Helpers.resolveTitle(eccTitle, gender);
+              titleText = '$resolvedTitle $firstName';
             }
             if (deptAccess != null) {
               subtitleText = 'Acesso: ${deptAccess.toUpperCase()}';
             }
+            currentPhotoUrl = data['photoUrl'] as String?;
           }
         }
 
         return Row(
           children: [
-            _Avatar(user: user, isAdmin: isAdmin),
+            _Avatar(user: user, isAdmin: isAdmin, photoUrl: currentPhotoUrl),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -317,10 +322,11 @@ class _TopBar extends StatelessWidget {
 }
 
 class _Avatar extends StatelessWidget {
-  const _Avatar({required this.user, this.isAdmin = false});
+  const _Avatar({required this.user, this.isAdmin = false, this.photoUrl});
 
   final User user;
   final bool isAdmin;
+  final String? photoUrl;
 
   /// Gera as iniciais a partir do nome (ou do e-mail, como fallback).
   String _initials() {
@@ -363,7 +369,8 @@ class _Avatar extends StatelessWidget {
     final bool isAdmin = this.isAdmin;
     final userName = user.displayName?.isNotEmpty == true ? user.displayName! : 'Usuário';
     final userEmail = user.email ?? '';
-    final hasPhoto = user.photoURL != null && user.photoURL!.isNotEmpty;
+    final activePhoto = photoUrl ?? user.photoURL;
+    final hasPhoto = activePhoto != null && activePhoto.isNotEmpty;
 
     showModalBottomSheet(
       context: context,
@@ -403,7 +410,7 @@ class _Avatar extends StatelessWidget {
                           border: Border.all(color: AppColors.gold, width: 1.4),
                           image: hasPhoto
                               ? DecorationImage(
-                                  image: NetworkImage(user.photoURL!),
+                                  image: NetworkImage(activePhoto!),
                                   fit: BoxFit.cover,
                                 )
                               : null,
@@ -535,7 +542,8 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasPhoto = user.photoURL != null && user.photoURL!.isNotEmpty;
+    final activePhoto = photoUrl ?? user.photoURL;
+    final hasPhoto = activePhoto != null && activePhoto.isNotEmpty;
 
     return GestureDetector(
       onTap: () => _showUserMenu(context),
@@ -549,7 +557,7 @@ class _Avatar extends StatelessWidget {
           border: Border.all(color: AppColors.gold, width: 1.4),
           image: hasPhoto
               ? DecorationImage(
-                  image: NetworkImage(user.photoURL!),
+                  image: NetworkImage(activePhoto!),
                   fit: BoxFit.cover,
                 )
               : null,

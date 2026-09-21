@@ -10,7 +10,8 @@ import 'package:intl/intl.dart';
 import '../main.dart'; // Para acessar AppColors
 
 class PerfilScreen extends StatefulWidget {
-  const PerfilScreen({super.key});
+  final String? adminEditUserId;
+  const PerfilScreen({super.key, this.adminEditUserId});
 
   @override
   State<PerfilScreen> createState() => _PerfilScreenState();
@@ -38,6 +39,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
   DateTime? _birthDate;
   DateTime? _conversionDate;
   DateTime? _baptismDate;
+  String _gender = 'Masculino';
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -54,12 +56,24 @@ class _PerfilScreenState extends State<PerfilScreen> {
       final user = _auth.currentUser;
       if (user == null) return;
 
-      _nameCtrl.text = user.displayName ?? '';
-      _photoUrl = user.photoURL;
+      final isEditingOther = widget.adminEditUserId != null;
+      final targetUid = widget.adminEditUserId ?? user.uid;
 
-      final doc = await _firestore.collection('users').doc(user.uid).get();
+      if (!isEditingOther) {
+        _nameCtrl.text = user.displayName ?? '';
+        _photoUrl = user.photoURL;
+      }
+
+      final doc = await _firestore.collection('users').doc(targetUid).get();
+      if (isEditingOther && doc.exists) {
+        _nameCtrl.text = doc.data()!['name'] ?? '';
+      }
       if (doc.exists) {
         final data = doc.data()!;
+        if (data.containsKey('photoUrl') && data['photoUrl'] != null) {
+          _photoUrl = data['photoUrl'];
+        }
+        _gender = data['gender'] ?? 'Masculino';
         _phoneCtrl.text = data['phone'] ?? '';
         _aboutCtrl.text = data['aboutMe'] ?? '';
         
@@ -86,21 +100,59 @@ class _PerfilScreenState extends State<PerfilScreen> {
   }
 
   Future<void> _pickAndUploadImage() async {
+    final ImageSource? source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('Escolha a origem da foto', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: AppColors.navy),
+                title: const Text('Câmera'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: AppColors.navy),
+                title: const Text('Galeria'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (source == null) return;
+
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    final pickedFile = await picker.pickImage(source: source, imageQuality: 70);
     
     if (pickedFile == null) return;
 
     setState(() => _isLoading = true);
     try {
       final user = _auth.currentUser!;
+      final isEditingOther = widget.adminEditUserId != null;
+      final targetUid = widget.adminEditUserId ?? user.uid;
+      
       final file = File(pickedFile.path);
-      final ref = _storage.ref().child('user_avatars/${user.uid}.jpg');
+      final ref = _storage.ref().child('user_avatars/${targetUid}.jpg');
       
       await ref.putFile(file);
       final downloadUrl = await ref.getDownloadURL();
       
-      await user.updatePhotoURL(downloadUrl);
+      if (!isEditingOther) {
+        await user.updatePhotoURL(downloadUrl);
+      }
+      await _firestore.collection('users').doc(targetUid).set({'photoUrl': downloadUrl}, SetOptions(merge: true));
       setState(() => _photoUrl = downloadUrl);
       
       if (mounted) {
@@ -171,12 +223,16 @@ class _PerfilScreenState extends State<PerfilScreen> {
     setState(() => _isSaving = true);
     try {
       final user = _auth.currentUser!;
+      final isEditingOther = widget.adminEditUserId != null;
+      final targetUid = widget.adminEditUserId ?? user.uid;
       
-      if (user.displayName != _nameCtrl.text) {
+      if (!isEditingOther && user.displayName != _nameCtrl.text) {
         await user.updateDisplayName(_nameCtrl.text);
       }
 
       final userData = {
+        'name': _nameCtrl.text,
+        'gender': _gender,
         'phone': _phoneCtrl.text,
         'aboutMe': _aboutCtrl.text,
         'birthDate': _birthDate != null ? Timestamp.fromDate(_birthDate!) : null,
@@ -194,7 +250,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      await _firestore.collection('users').doc(user.uid).set(userData, SetOptions(merge: true));
+      await _firestore.collection('users').doc(targetUid).set(userData, SetOptions(merge: true));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -367,6 +423,18 @@ class _PerfilScreenState extends State<PerfilScreen> {
                             title: 'Dados Pessoais',
                             icon: Icons.badge_outlined,
                             children: [
+                              DropdownButtonFormField<String>(
+                                value: _gender,
+                                decoration: _inputDecoration('Sexo', icon: Icons.person_outline),
+                                items: const [
+                                  DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
+                                  DropdownMenuItem(value: 'Feminino', child: Text('Feminino')),
+                                ],
+                                onChanged: (val) {
+                                  if (val != null) setState(() => _gender = val);
+                                },
+                              ),
+                              const SizedBox(height: 16),
                               TextFormField(
                                 controller: _nameCtrl,
                                 decoration: _inputDecoration('Nome Completo', icon: Icons.person_outline),

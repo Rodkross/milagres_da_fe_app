@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'perfil_screen.dart';
 import 'package:flutter/material.dart';
 
 import '../main.dart' show AppColors;
@@ -61,10 +62,10 @@ class MemberDetailsScreen extends StatelessWidget {
                     items: const [
                       DropdownMenuItem(value: 'Visitante', child: Text('Visitante')),
                       DropdownMenuItem(value: 'Membro', child: Text('Membro')),
-                      DropdownMenuItem(value: 'Obreiro(a)', child: Text('Obreiro(a)')),
-                      DropdownMenuItem(value: 'Diácono / Diaconisa', child: Text('Diácono / Diaconisa')),
-                      DropdownMenuItem(value: 'Presbítero(a)', child: Text('Presbítero(a)')),
-                      DropdownMenuItem(value: 'Pastor(a)', child: Text('Pastor(a)')),
+                      DropdownMenuItem(value: 'Obreiro', child: Text('Obreiro(a)')),
+                      DropdownMenuItem(value: 'Diácono', child: Text('Diácono / Diaconisa')),
+                      DropdownMenuItem(value: 'Presbítero', child: Text('Presbítero(a)')),
+                      DropdownMenuItem(value: 'Pastor', child: Text('Pastor(a)')),
                     ],
                     onChanged: (val) => setModalState(() => currentTitle = val!),
                   ),
@@ -247,6 +248,31 @@ class MemberDetailsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
                 const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.navy,
+                      side: const BorderSide(color: AppColors.navy, width: 2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PerfilScreen(adminEditUserId: userDoc.id),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.edit_document, size: 24),
+                    label: const Text(
+                      'Editar Ficha Cadastral',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   height: 56,
