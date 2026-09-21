@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import '../main.dart'; // for AppColors
+import 'devocional_screen.dart';
 
 class BibliaScreen extends StatefulWidget {
   const BibliaScreen({super.key});
@@ -184,7 +185,7 @@ class ChapterSelectionScreen extends StatelessWidget {
   }
 }
 
-class ReadingScreen extends StatelessWidget {
+class ReadingScreen extends StatefulWidget {
   const ReadingScreen({
     super.key,
     required this.bookName,
@@ -197,43 +198,93 @@ class ReadingScreen extends StatelessWidget {
   final List<dynamic> verses;
 
   @override
+  State<ReadingScreen> createState() => _ReadingScreenState();
+}
+
+class _ReadingScreenState extends State<ReadingScreen> {
+  double _fontSize = 17.0;
+
+  void _changeFontSize(double delta) {
+    setState(() {
+      _fontSize = (_fontSize + delta).clamp(14.0, 32.0);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('$bookName $chapterNum', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('${widget.bookName} ${widget.chapterNum}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.navyDeep,
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.text_decrease),
+            tooltip: 'Diminuir Fonte',
+            onPressed: () => _changeFontSize(-2.0),
+          ),
+          IconButton(
+            icon: const Icon(Icons.text_increase),
+            tooltip: 'Aumentar Fonte',
+            onPressed: () => _changeFontSize(2.0),
+          ),
+        ],
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(20),
-        itemCount: verses.length,
+        itemCount: widget.verses.length,
         itemBuilder: (context, index) {
           final verseNum = index + 1;
-          final text = verses[index].toString();
+          final text = widget.verses[index].toString();
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: RichText(
-              text: TextSpan(
-                style: const TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 17,
-                  height: 1.5,
-                  fontFamily: 'Georgia', // Serif font looks better for reading
-                ),
-                children: [
-                  TextSpan(
-                    text: '$verseNum ',
-                    style: const TextStyle(
-                      color: AppColors.gold,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      fontFeatures: [FontFeature.superscripts()],
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: RichText(
+                    text: TextSpan(
+                      style: TextStyle(
+                        color: AppColors.ink,
+                        fontSize: _fontSize,
+                        height: 1.5,
+                        fontFamily: 'Georgia', // Serif font looks better for reading
+                      ),
+                      children: [
+                        TextSpan(
+                          text: '$verseNum ',
+                          style: TextStyle(
+                            color: AppColors.gold,
+                            fontSize: _fontSize - 4,
+                            fontWeight: FontWeight.bold,
+                            fontFeatures: const [FontFeature.superscripts()],
+                          ),
+                        ),
+                        TextSpan(text: text),
+                      ],
                     ),
                   ),
-                  TextSpan(text: text),
-                ],
-              ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => DevocionalScreen(
+                          verseText: text,
+                          verseReference: '${widget.bookName} ${widget.chapterNum}:$verseNum',
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.only(left: 6, right: 2, top: 2, bottom: 2),
+                    color: Colors.transparent, // Aumenta levemente a área de clique
+                    child: const Icon(Icons.auto_awesome, color: AppColors.goldBright, size: 14),
+                  ),
+                ),
+              ],
             ),
           );
         },

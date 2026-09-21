@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'biblia_screen.dart'; // Para acessar ReadingScreen
 import '../main.dart'; // Para acessar AppColors
 
@@ -36,8 +37,29 @@ class _DevocionalScreenState extends State<DevocionalScreen> {
 
   Future<void> _generateDevotional() async {
     try {
-      final model = GenerativeModel(model: 'gemini-3.5-flash', apiKey: _apiKey);
-      final prompt = '''
+      // 1. Tentar ler do Cache Global (Firestore)
+      final docId = widget.verseReference.replaceAll('/', '-').replaceAll(':', '_').replaceAll(' ', '').toLowerCase();
+      final cacheRef = FirebaseFirestore.instance.collection('cached_devotionals').doc(docId);
+      final cacheSnapshot = await cacheRef.get();
+
+      if (cacheSnapshot.exists) {
+        // Encontrou no cache! Carregamento imediato sem custo de IA.
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+          _generatedContent = cacheSnapshot.data()?['content'] ?? 'Erro ao ler cache.';
+        });
+        return;
+      }
+
+      // 2. Se não existir no cache, chamar a Inteligência Artificial
+      String generatedText = '';
+      final modelsToTry = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
+      
+      for (int i = 0; i < modelsToTry.length; i++) {
+        try {
+          final model = GenerativeModel(model: modelsToTry[i], apiKey: _apiKey);
+          final prompt = '''
 Você é um teólogo e pastor experiente. 
 Escreva um devocional curto sobre este versículo: "${widget.verseText}" (${widget.verseReference}).
 
@@ -54,14 +76,40 @@ Responda o estudo e devocional:
 **Aplicação na Vida Pessoal:**
 **Versículos Relacionados:** (Liste 2 ou 3 versículos relacionados SEPARADOS EXATAMENTE POR VÍRGULA. Exemplo: João 3:16, Salmos 23:1, Romanos 8:28)
 ''';
+          final content = [Content.text(prompt)];
+          final response = await model.generateContent(content);
+          generatedText = response.text ?? '';
+          
+          if (generatedText.isNotEmpty) {
+            break; // Se deu certo, sai do loop
+          }
+        } catch (e) {
+          debugPrint('Falha ao usar modelo ${modelsToTry[i]}: $e');
+          if (i == modelsToTry.length - 1) {
+            rethrow; // Se foi o último modelo e falhou, joga o erro para fora
+          }
+        }
+      }
+      
+      if (generatedText.isEmpty) {
+        throw Exception('Todos os modelos falharam ao gerar conteúdo.');
+      }
 
-      final content = [Content.text(prompt)];
-      final response = await model.generateContent(content);
+      // 3. Salvar a nova resposta no Banco de Dados para que a Igreja toda acesse instantaneamente
+      try {
+        await cacheRef.set({
+          'verseReference': widget.verseReference,
+          'content': generatedText,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        debugPrint('Erro ao salvar no cache: $e'); // Ignora e apenas mostra no app se falhar o cache
+      }
       
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _generatedContent = response.text ?? 'Não foi possível gerar o conteúdo.';
+        _generatedContent = generatedText;
       });
     } catch (e) {
       debugPrint("====== GEMINI API EXCEPTION ======");
