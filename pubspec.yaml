@@ -115,3 +115,6 @@ flutter_native_splash:
   android_12:
     image: "assets/logo.png"
     color: "#0B132B"
+
+dependency_overrides:
+  device_info_plus: ^10.0.0
