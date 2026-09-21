@@ -251,82 +251,35 @@ class _TopBar extends StatelessWidget {
         ? 'Bem-vindo(a), $firstName'
         : AppInfo.welcome;
 
-    return Row(
-      children: [
-        _Avatar(user: user),
-        const SizedBox(width: 12),
-        Expanded(
-          child: StreamBuilder<DocumentSnapshot>(
-            stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
-            builder: (context, snapshot) {
-              String titleText = greeting;
-              String subtitleText = user.email ?? AppInfo.tagline;
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+      builder: (context, snapshot) {
+        String titleText = greeting;
+        String subtitleText = user.email ?? AppInfo.tagline;
+        bool isAdmin = false;
 
-              if (snapshot.hasData && snapshot.data!.exists) {
-                final data = snapshot.data!.data() as Map<String, dynamic>?;
-                if (data != null) {
-                  final eccTitle = data['ecclesiasticalTitle'] as String?;
-                  final deptAccess = data['departmentAccess'] as String?;
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final data = snapshot.data!.data() as Map<String, dynamic>?;
+          if (data != null) {
+            final eccTitle = data['ecclesiasticalTitle'] as String?;
+            final deptAccess = data['departmentAccess'] as String?;
+            isAdmin = (deptAccess == 'presidencia' || deptAccess == 'secretaria');
 
-                  if (eccTitle != null && eccTitle != 'Membro' && eccTitle != 'Visitante' && firstName != null) {
-                    titleText = '$eccTitle $firstName';
-                  }
+            if (eccTitle != null && eccTitle != 'Membro' && eccTitle != 'Visitante' && firstName != null) {
+              titleText = '$eccTitle $firstName';
+            }
+            if (deptAccess != null) {
+              subtitleText = 'Acesso: ${deptAccess.toUpperCase()}';
+            }
+          }
+        }
 
-                  if (deptAccess != null) {
-                    subtitleText = 'Acesso: ${deptAccess.toUpperCase()}';
-                  }
-
-                  final bool isAdmin = deptAccess == 'presidencia' || deptAccess == 'secretaria';
-
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              titleText,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                height: 1.25,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              subtitleText,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: AppColors.goldBright,
-                                fontSize: 12,
-                                letterSpacing: 0.3,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      if (isAdmin)
-                        IconButton(
-                          icon: const Icon(Icons.admin_panel_settings, color: AppColors.goldBright),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const DashboardAdminScreen()),
-                            );
-                          },
-                        ),
-                    ],
-                  );
-                }
-              }
-
-              // Fallback se não tiver dados ainda
-              return Column(
+        return Row(
+          children: [
+            _Avatar(user: user, isAdmin: isAdmin),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -352,21 +305,22 @@ class _TopBar extends StatelessWidget {
                     ),
                   ),
                 ],
-              );
-            },
-          ),
-        ),
-        const SizedBox(width: 12),
-        const _NotificationButton(),
-      ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            const _NotificationButton(),
+          ],
+        );
+      },
     );
   }
 }
 
 class _Avatar extends StatelessWidget {
-  const _Avatar({required this.user});
+  const _Avatar({required this.user, this.isAdmin = false});
 
   final User user;
+  final bool isAdmin;
 
   /// Gera as iniciais a partir do nome (ou do e-mail, como fallback).
   String _initials() {
@@ -406,7 +360,7 @@ class _Avatar extends StatelessWidget {
   }
 
   void _showUserMenu(BuildContext context) {
-    final bool isAdmin = true; // Placeholder para permissões
+    final bool isAdmin = this.isAdmin;
     final userName = user.displayName?.isNotEmpty == true ? user.displayName! : 'Usuário';
     final userEmail = user.email ?? '';
     final hasPhoto = user.photoURL != null && user.photoURL!.isNotEmpty;
