@@ -152,7 +152,7 @@ class ChapterSelectionScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ReadingScreen(
+                  builder: (context) => VerseSelectionScreen(
                     bookName: bookName,
                     chapterNum: chapterNum,
                     verses: chapters[index] as List<dynamic>,
@@ -185,8 +185,9 @@ class ChapterSelectionScreen extends StatelessWidget {
   }
 }
 
-class ReadingScreen extends StatefulWidget {
-  const ReadingScreen({
+
+class VerseSelectionScreen extends StatelessWidget {
+  const VerseSelectionScreen({
     super.key,
     required this.bookName,
     required this.chapterNum,
@@ -198,11 +199,102 @@ class ReadingScreen extends StatefulWidget {
   final List<dynamic> verses;
 
   @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F9FC),
+      appBar: AppBar(
+        title: Text('$bookName $chapterNum', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: AppColors.navyDeep,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 5,
+          childAspectRatio: 1,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+        ),
+        itemCount: verses.length,
+        itemBuilder: (context, index) {
+          final verseNum = index + 1;
+          return InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ReadingScreen(
+                    bookName: bookName,
+                    chapterNum: chapterNum,
+                    verses: verses,
+                    initialVerse: verseNum,
+                  ),
+                ),
+              );
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Ink(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.divider),
+              ),
+              child: Center(
+                child: Text(
+                  '$verseNum',
+                  style: const TextStyle(
+                    color: AppColors.navy,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class ReadingScreen extends StatefulWidget {
+  const ReadingScreen({
+    super.key,
+    required this.bookName,
+    required this.chapterNum,
+    required this.verses,
+    this.initialVerse,
+  });
+
+  final String bookName;
+  final int chapterNum;
+  final List<dynamic> verses;
+  final int? initialVerse;
+
+  @override
   State<ReadingScreen> createState() => _ReadingScreenState();
 }
 
 class _ReadingScreenState extends State<ReadingScreen> {
   double _fontSize = 17.0;
+  final GlobalKey _targetVerseKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialVerse != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_targetVerseKey.currentContext != null) {
+          Scrollable.ensureVisible(
+            _targetVerseKey.currentContext!,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+            alignment: 0.2, // Puts it near the top
+          );
+        }
+      });
+    }
+  }
 
   void _changeFontSize(double delta) {
     setState(() {
@@ -231,63 +323,73 @@ class _ReadingScreenState extends State<ReadingScreen> {
           ),
         ],
       ),
-      body: ListView.builder(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-        itemCount: widget.verses.length,
-        itemBuilder: (context, index) {
-          final verseNum = index + 1;
-          final text = widget.verses[index].toString();
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: RichText(
-                    text: TextSpan(
-                      style: TextStyle(
-                        color: AppColors.ink,
-                        fontSize: _fontSize,
-                        height: 1.5,
-                        fontFamily: 'Georgia', // Serif font looks better for reading
-                      ),
-                      children: [
-                        TextSpan(
-                          text: '$verseNum ',
-                          style: TextStyle(
-                            color: AppColors.gold,
-                            fontSize: _fontSize - 4,
-                            fontWeight: FontWeight.bold,
-                            fontFeatures: const [FontFeature.superscripts()],
-                          ),
+        child: Column(
+          children: List.generate(widget.verses.length, (index) {
+            final verseNum = index + 1;
+            final text = widget.verses[index].toString();
+            final isTarget = widget.initialVerse == verseNum;
+
+            return Container(
+              key: isTarget ? _targetVerseKey : null,
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: isTarget ? const EdgeInsets.all(8) : EdgeInsets.zero,
+              decoration: BoxDecoration(
+                color: isTarget ? AppColors.goldBright.withValues(alpha: 0.15) : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(
+                        style: TextStyle(
+                          color: AppColors.ink,
+                          fontSize: _fontSize,
+                          height: 1.5,
+                          fontFamily: 'Georgia',
                         ),
-                        TextSpan(text: text),
-                      ],
+                        children: [
+                          TextSpan(
+                            text: '$verseNum ',
+                            style: TextStyle(
+                              color: AppColors.gold,
+                              fontSize: _fontSize - 4,
+                              fontWeight: FontWeight.bold,
+                              fontFeatures: const [FontFeature.superscripts()],
+                            ),
+                          ),
+                          TextSpan(text: text),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DevocionalScreen(
-                          verseText: text,
-                          verseReference: '${widget.bookName} ${widget.chapterNum}:$verseNum',
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DevocionalScreen(
+                            verseText: text,
+                            verseReference: '${widget.bookName} ${widget.chapterNum}:$verseNum',
+                            isStudy: true,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.only(left: 6, right: 2, top: 2, bottom: 2),
-                    color: Colors.transparent, // Aumenta levemente a área de clique
-                    child: const Icon(Icons.auto_awesome, color: AppColors.goldBright, size: 14),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.only(left: 6, right: 2, top: 2, bottom: 2),
+                      color: Colors.transparent,
+                      child: const Icon(Icons.auto_awesome, color: AppColors.goldBright, size: 14),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
+                ],
+              ),
+            );
+          }),
+        ),
       ),
     );
   }

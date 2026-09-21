@@ -9,11 +9,13 @@ import '../main.dart'; // Para acessar AppColors
 class DevocionalScreen extends StatefulWidget {
   final String verseText;
   final String verseReference;
+  final bool isStudy;
 
   const DevocionalScreen({
     super.key,
     required this.verseText,
     required this.verseReference,
+    this.isStudy = false,
   });
 
   @override
@@ -88,6 +90,8 @@ Responda o estudo e devocional:
           if (i == modelsToTry.length - 1) {
             rethrow; // Se foi o último modelo e falhou, joga o erro para fora
           }
+          // Aguarda um pequeno delay (Exponential Backoff) antes de tentar o próximo modelo (2s, depois 4s...)
+          await Future.delayed(Duration(seconds: 2 * (i + 1)));
         }
       }
       
@@ -156,12 +160,11 @@ Não disponíveis no momento.
     return text.substring(contentStart, endIndex).trim();
   }
 
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FC),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Devocional Diário', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(widget.isStudy ? 'Estudo Bíblico' : 'Devocional Diário', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.navyDeep,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
@@ -245,12 +248,9 @@ Não disponíveis no momento.
             ),
             
             // Área de Conteúdo Gerado
-            Transform.translate(
-              offset: const Offset(0, -24),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _buildContent(),
-              ),
+            Padding(
+              padding: const EdgeInsets.only(left: 20, right: 20, top: 24),
+              child: _buildContent(),
             ),
           ],
         ),
@@ -303,158 +303,137 @@ Não disponíveis no momento.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Grid de Metadados Históricos
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 4))],
-            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        // Drop Cap & Exegesis
+        RichText(
+          text: TextSpan(
             children: [
-              const Row(
-                children: [
-                  Icon(Icons.history_edu, color: AppColors.navyDeep, size: 20),
-                  SizedBox(width: 8),
-                  Text('Contexto Histórico', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navyDeep)),
-                ],
-              ),
-              const Divider(height: 24),
-              _buildMetaRow(Icons.person, 'Autor', author),
-              const SizedBox(height: 12),
-              _buildMetaRow(Icons.group, 'Público', target),
-              const SizedBox(height: 12),
-              _buildMetaRow(Icons.calendar_month, 'Datação', year),
-              const SizedBox(height: 12),
-              _buildMetaRow(Icons.location_on, 'Local', location),
-            ],
-          ),
-        ),
-        
-        const SizedBox(height: 16),
-
-        // Card de Exegese
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppColors.navyDeep.withValues(alpha: 0.03),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.navyDeep.withValues(alpha: 0.1)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: AppColors.navyDeep, borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(Icons.library_books, color: Colors.white, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text('Apoio Exegético', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.navyDeep)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                exegesis.replaceAll('*', ''), // Remove marcações markdown perdidas
-                style: const TextStyle(fontSize: 16, color: AppColors.ink, height: 1.6),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        // Card de Aplicação Pessoal
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppColors.goldBright.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.goldBright.withValues(alpha: 0.5)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: AppColors.goldBright, borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(Icons.favorite, color: AppColors.navyDeep, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text('Aplicação Pessoal', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.navyDeep)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                application.replaceAll('*', ''),
-                style: const TextStyle(fontSize: 16, color: AppColors.ink, height: 1.6, fontWeight: FontWeight.w500),
-              ),
-            ],
-          ),
-        ),
-        
-        const SizedBox(height: 16),
-        
-        // Versículos Relacionados (Apenas se a IA tiver gerado)
-        if (relatedVerses != "Não informado" && relatedVerses.isNotEmpty)
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: const [BoxShadow(color: Color(0x05000000), blurRadius: 8, offset: Offset(0, 3))],
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.link, color: AppColors.navyDeep, size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      'Versículos Relacionados',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navyDeep),
-                    ),
-                  ],
+              TextSpan(
+                text: exegesis.isNotEmpty ? exegesis[0].toUpperCase() : '',
+                style: const TextStyle(
+                  fontFamily: 'Georgia',
+                  fontSize: 64,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.navyDeep,
+                  height: 1.0,
                 ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: relatedVerses.split(RegExp(r'[,\n]')).map((v) {
-                    final verseRef = v.replaceAll('*', '').replaceAll('-', '').trim();
-                    if (verseRef.isEmpty) return const SizedBox.shrink();
-                    
-                    return ActionChip(
-                      label: Text(verseRef, style: const TextStyle(color: AppColors.navyDeep, fontWeight: FontWeight.bold)),
-                      backgroundColor: AppColors.goldBright.withValues(alpha: 0.15),
-                      side: BorderSide(color: AppColors.goldBright.withValues(alpha: 0.5)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      onPressed: () => _openBibleReference(context, verseRef),
-                    );
-                  }).toList(),
+              ),
+              TextSpan(
+                text: exegesis.length > 1 ? exegesis.substring(1).replaceAll('*', '') : '',
+                style: const TextStyle(
+                  fontFamily: 'Georgia',
+                  fontSize: 18,
+                  color: AppColors.ink,
+                  height: 1.8,
                 ),
-              ],
+              ),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 24),
+        
+        // Context Tags
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            if (author != "Não informado") _buildContextTag(Icons.person, author),
+            if (year != "Não informado") _buildContextTag(Icons.calendar_month, year),
+            if (location != "Não informado") _buildContextTag(Icons.location_on, location),
+            if (target != "Não informado") _buildContextTag(Icons.group, target),
+          ],
+        ),
+
+        const SizedBox(height: 32),
+        const Divider(color: AppColors.goldBright, thickness: 1.5),
+        const SizedBox(height: 32),
+
+        // Aplicação Pessoal
+        const Text(
+          'Aplicação Pessoal',
+          style: TextStyle(
+            fontFamily: 'Georgia',
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: AppColors.navyDeep,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          application.replaceAll('*', ''),
+          style: const TextStyle(
+            fontFamily: 'Georgia',
+            fontSize: 18,
+            color: AppColors.ink,
+            height: 1.8,
+          ),
+        ),
+        
+        const SizedBox(height: 40),
+        
+        // Versículos Relacionados
+        if (relatedVerses != "Não informado" && relatedVerses.isNotEmpty) ...[
+          const Text(
+            'Leitura Adicional',
+            style: TextStyle(
+              fontFamily: 'Georgia',
+              fontSize: 20,
+              fontStyle: FontStyle.italic,
+              color: AppColors.navyDeep,
             ),
           ),
-          
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: relatedVerses.split(RegExp(r"[,\n]")).map((v) {
+              final verseRef = v.replaceAll('*', '').replaceAll('-', '').trim();
+              if (verseRef.isEmpty) return const SizedBox.shrink();
+              return ActionChip(
+                label: Text(verseRef, style: const TextStyle(color: AppColors.navyDeep, fontWeight: FontWeight.bold, fontFamily: 'Georgia')),
+                backgroundColor: Colors.transparent,
+                side: const BorderSide(color: AppColors.navyDeep, width: 1),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                onPressed: () => _openBibleReference(context, verseRef),
+              );
+            }).toList(),
+          ),
+        ],
         const SizedBox(height: 40),
       ],
     );
   }
 
+  Widget _buildContextTag(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F4F8),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Icon(icon, size: 14, color: AppColors.navyDeep),
+              ),
+            ),
+            TextSpan(
+              text: label,
+              style: const TextStyle(fontSize: 12, color: AppColors.navyDeep, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _openBibleReference(BuildContext context, String reference) async {
-    // Exemplo de referência: "Efésios 2:8-9" ou "1 João 2:3"
     try {
       final parts = reference.split(':');
       if (parts.isEmpty) return;
@@ -467,6 +446,12 @@ Não disponíveis no momento.
       final chapterStr = bookAndChapter.substring(lastSpace + 1).trim();
       final chapterNum = int.tryParse(chapterStr) ?? 1;
 
+      int? targetVerse;
+      if (parts.length > 1) {
+        final versePart = parts[1].split('-').first.replaceAll(RegExp(r'[^0-9]'), '');
+        targetVerse = int.tryParse(versePart);
+      }
+
       // Mostrar um loading rápido
       showDialog(
         context: context,
@@ -478,14 +463,13 @@ Não disponíveis no momento.
       final jsonString = await rootBundle.loadString('assets/biblia_jfa.json');
       final data = json.decode(jsonString) as List<dynamic>;
       
-      // Encontrar livro (ignorando acentos/maiúsculas de forma simples)
+      // Encontrar livro
       final book = data.firstWhere(
         (b) => b['name'].toString().toLowerCase().replaceAll('é', 'e').replaceAll('í', 'i').replaceAll('ê', 'e') 
             == bookName.toLowerCase().replaceAll('é', 'e').replaceAll('í', 'i').replaceAll('ê', 'e'),
         orElse: () => null,
       );
 
-      // Fechar o loading
       if (context.mounted) Navigator.pop(context);
 
       if (book != null && context.mounted) {
@@ -499,6 +483,7 @@ Não disponíveis no momento.
                 bookName: book['name'],
                 chapterNum: chapterNum,
                 verses: verses,
+                initialVerse: targetVerse,
               ),
             ),
           );
@@ -513,7 +498,7 @@ Não disponíveis no momento.
       }
     } catch (e) {
       if (context.mounted) {
-        Navigator.pop(context); // Fechar o loading
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Erro ao abrir o versículo.')),
         );
@@ -521,23 +506,4 @@ Não disponíveis no momento.
     }
   }
 
-  Widget _buildMetaRow(IconData icon, String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 18, color: AppColors.muted),
-        const SizedBox(width: 12),
-        SizedBox(
-          width: 80,
-          child: Text(label, style: const TextStyle(color: AppColors.muted, fontSize: 14)),
-        ),
-        Expanded(
-          child: Text(
-            value.replaceAll('*', '').trim(), 
-            style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.ink, fontSize: 14),
-          ),
-        ),
-      ],
-    );
-  }
 }
