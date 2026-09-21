@@ -17,6 +17,8 @@ import 'screens/ofertas_screen.dart';
 import 'screens/convenio_screen.dart';
 import 'screens/perfil_screen.dart';
 import 'screens/devocional_screen.dart';
+import 'screens/admin_screen.dart';
+import 'screens/dashboard_admin_screen.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'dart:math' as math;
 import 'dart:convert';
@@ -244,8 +246,9 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final displayName = user.displayName?.trim();
-    final greeting = (displayName != null && displayName.isNotEmpty)
-        ? 'Bem-vindo(a), $displayName'
+    final firstName = displayName?.split(' ').first;
+    final greeting = (firstName != null && firstName.isNotEmpty)
+        ? 'Bem-vindo(a), $firstName'
         : AppInfo.welcome;
 
     return Row(
@@ -253,32 +256,104 @@ class _TopBar extends StatelessWidget {
         _Avatar(user: user),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                greeting,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  height: 1.25,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                user.email ?? AppInfo.tagline,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.goldBright,
-                  fontSize: 12,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ],
+          child: StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+            builder: (context, snapshot) {
+              String titleText = greeting;
+              String subtitleText = user.email ?? AppInfo.tagline;
+
+              if (snapshot.hasData && snapshot.data!.exists) {
+                final data = snapshot.data!.data() as Map<String, dynamic>?;
+                if (data != null) {
+                  final eccTitle = data['ecclesiasticalTitle'] as String?;
+                  final deptAccess = data['departmentAccess'] as String?;
+
+                  if (eccTitle != null && eccTitle != 'Membro' && eccTitle != 'Visitante' && firstName != null) {
+                    titleText = '$eccTitle $firstName';
+                  }
+
+                  if (deptAccess != null) {
+                    subtitleText = 'Acesso: ${deptAccess.toUpperCase()}';
+                  }
+
+                  final bool isAdmin = deptAccess == 'presidencia' || deptAccess == 'secretaria';
+
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              titleText,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                height: 1.25,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              subtitleText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: AppColors.goldBright,
+                                fontSize: 12,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      if (isAdmin)
+                        IconButton(
+                          icon: const Icon(Icons.admin_panel_settings, color: AppColors.goldBright),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const DashboardAdminScreen()),
+                            );
+                          },
+                        ),
+                    ],
+                  );
+                }
+              }
+
+              // Fallback se não tiver dados ainda
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    titleText,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      height: 1.25,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitleText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.goldBright,
+                      fontSize: 12,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
         const SizedBox(width: 12),
@@ -443,6 +518,10 @@ class _Avatar extends StatelessWidget {
                     title: 'Painel de Administração',
                     onTap: () {
                       Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const DashboardAdminScreen()),
+                      );
                     },
                   ),
                 _buildMenuItem(
@@ -738,9 +817,18 @@ class _HeaderVerseState extends State<_HeaderVerse> {
       final text = verses[verseIndex].toString();
       final calculatedReference = '${book['name']} ${chapterIndex + 1}:${verseIndex + 1}';
       
-      // Verificar se já foi curtido
-      final prefs = await SharedPreferences.getInstance();
-      final hasLikedBefore = prefs.getBool('liked_verse_$calculatedReference') ?? false;
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      bool hasLikedBefore = false;
+      
+      if (uid != null) {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('liked_verses')
+            .doc(calculatedReference.replaceAll('/', '-'))
+            .get();
+        hasLikedBefore = doc.exists;
+      }
 
       setState(() {
         _verseText = '"$text"';
@@ -763,15 +851,24 @@ class _HeaderVerseState extends State<_HeaderVerse> {
     // Atualiza a tela instantaneamente
     setState(() => _hasLiked = true);
     
-    // Salva no disco do celular que este versículo foi curtido
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('liked_verse_$_verseReference', true);
-    
-    // Incrementar no Firestore usando a REFERÊNCIA como ID (ex: "Hebreus 11:1")
-    FirebaseFirestore.instance
-        .collection('verses_likes')
-        .doc(_verseReference.replaceAll('/', '-')) // Evitar barras no ID
-        .set({'likes': FieldValue.increment(1)}, SetOptions(merge: true));
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      final safeRef = _verseReference.replaceAll('/', '-');
+      
+      // Salva no perfil do usuário para sincronizar em outros aparelhos
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('liked_verses')
+          .doc(safeRef)
+          .set({'timestamp': FieldValue.serverTimestamp()});
+          
+      // Incrementa o contador global do versículo
+      FirebaseFirestore.instance
+          .collection('verses_likes')
+          .doc(safeRef)
+          .set({'likes': FieldValue.increment(1)}, SetOptions(merge: true));
+    }
   }
 
   @override

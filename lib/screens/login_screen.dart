@@ -23,6 +23,12 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
   String? _errorMessage;
+  String _selectedTitle = 'Membro';
+
+  final List<String> _titles = [
+    'Membro',
+    'Visitante',
+  ];
 
   @override
   void dispose() {
@@ -47,6 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
           name: _nameController.text,
           email: _emailController.text,
           password: _passwordController.text,
+          ecclesiasticalTitle: _selectedTitle,
         );
       } else {
         await widget.authService.signIn(
@@ -116,6 +123,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     nameController: _nameController,
                     emailController: _emailController,
                     passwordController: _passwordController,
+                    titles: _titles,
+                    selectedTitle: _selectedTitle,
+                    onTitleChanged: (value) => setState(() => _selectedTitle = value!),
                     onToggleObscure: () =>
                         setState(() => _obscurePassword = !_obscurePassword),
                     onSubmit: _submit,
@@ -192,6 +202,9 @@ class _FormCard extends StatelessWidget {
     required this.nameController,
     required this.emailController,
     required this.passwordController,
+    required this.titles,
+    required this.selectedTitle,
+    required this.onTitleChanged,
     required this.onToggleObscure,
     required this.onSubmit,
     required this.onForgotPassword,
@@ -205,6 +218,9 @@ class _FormCard extends StatelessWidget {
   final TextEditingController nameController;
   final TextEditingController emailController;
   final TextEditingController passwordController;
+  final List<String> titles;
+  final String selectedTitle;
+  final ValueChanged<String?> onTitleChanged;
   final VoidCallback onToggleObscure;
   final VoidCallback onSubmit;
   final VoidCallback onForgotPassword;
@@ -251,7 +267,33 @@ class _FormCard extends StatelessWidget {
                   return null;
                 },
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: selectedTitle,
+                decoration: InputDecoration(
+                  labelText: 'Cargo na Igreja',
+                  prefixIcon: const Icon(Icons.badge_outlined, color: AppColors.muted),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.gold, width: 2),
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                ),
+                items: titles.map((title) {
+                  return DropdownMenuItem(value: title, child: Text(title));
+                }).toList(),
+                onChanged: onTitleChanged,
+              ),
+              const SizedBox(height: 16),
             ],
             _Field(
               controller: emailController,

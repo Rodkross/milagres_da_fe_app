@@ -20,8 +20,9 @@ class DevocionalScreen extends StatefulWidget {
 }
 
 class _DevocionalScreenState extends State<DevocionalScreen> {
-  // Chave da API do Gemini
-  static const _apiKey = 'AIzaSyC89lvxUDNq3Dj_nKR1Cf-vVPu_9fmYNRI';
+  // Chave atualizada
+  // A chave de API agora é lida via variável de ambiente no momento do build
+  final String _apiKey = const String.fromEnvironment('GEMINI_API_KEY');
 
   bool _isLoading = true;
   String _generatedContent = '';
@@ -35,16 +36,20 @@ class _DevocionalScreenState extends State<DevocionalScreen> {
 
   Future<void> _generateDevotional() async {
     try {
-      final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: _apiKey);
+      final model = GenerativeModel(model: 'gemini-3.5-flash', apiKey: _apiKey);
       final prompt = '''
 Você é um teólogo e pastor experiente. 
 Escreva um devocional curto sobre este versículo: "${widget.verseText}" (${widget.verseReference}).
 
 O formato DEVE conter exatamente estes tópicos (use exatamente estas chaves e evite pular linha antes de começar a escrever o conteúdo da chave):
-**Autor:**
-**Para quem escreveu:**
-**Ano:**
-**Local:**
+
+Responda o contexto histórico do livro bíblico:
+**Autor:** (Quem escreveu este livro da Bíblia)
+**Para quem escreveu:** (Público original)
+**Ano:** (Ano ou período aproximado em que o livro foi escrito)
+**Local:** (De onde foi escrito ou onde ocorreu)
+
+Responda o estudo e devocional:
 **Apoio Exegético:**
 **Aplicação na Vida Pessoal:**
 **Versículos Relacionados:**
@@ -53,6 +58,7 @@ O formato DEVE conter exatamente estes tópicos (use exatamente estas chaves e e
       final content = [Content.text(prompt)];
       final response = await model.generateContent(content);
       
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
         _generatedContent = response.text ?? 'Não foi possível gerar o conteúdo.';
@@ -61,23 +67,30 @@ O formato DEVE conter exatamente estes tópicos (use exatamente estas chaves e e
       debugPrint("====== GEMINI API EXCEPTION ======");
       debugPrint(e.toString());
       
+      String errorMessage = "Não foi possível gerar a exegese neste momento.";
+      if (e.toString().contains("503") || e.toString().contains("available")) {
+        errorMessage = "Os servidores de Inteligência Artificial do Google estão superlotados no momento. Por favor, tente abrir o devocional novamente em alguns minutos.";
+      }
+
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage = '';
+        _errorMessage = errorMessage;
         _generatedContent = """
-**Autor:** Paulo (Apóstolo)
-**Para quem escreveu:** A igreja em Roma
-**Ano:** Aproximadamente 57 d.C.
-**Local:** Corinto
+**Atenção:** 
+Serviço Indisponível
+
+**Motivo:** 
+$errorMessage
 
 **Apoio Exegético:** 
-O contexto deste versículo nos mostra que a justificação vem pela fé e não pelas obras da lei. A palavra usada no original grego carrega o sentido de confiança absoluta. Paulo está construindo um argumento teológico robusto para unificar a igreja e demonstrar que todos têm acesso à graça de Deus da mesma maneira.
+Infelizmente a conexão com os servidores da Inteligência Artificial falhou ou está congestionada.
 
 **Aplicação na Vida Pessoal:**
-No dia a dia, somos frequentemente tentados a confiar em nossos próprios méritos. Este versículo nos convida a depositar nossa total confiança na obra redentora de Cristo. Quando enfrentamos dificuldades, não é nossa força que nos sustenta, mas a nossa confiança de que Deus está no controle.
+Tente fechar a tela e abrir novamente daqui a pouco para gerar o estudo deste versículo!
 
 **Versículos Relacionados:**
-Efésios 2:8-9, Gálatas 2:16, Hebreus 11:1
+Não disponíveis no momento.
 """;
       });
     }

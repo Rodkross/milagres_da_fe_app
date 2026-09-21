@@ -24,11 +24,18 @@ class _OracaoScreenState extends State<OracaoScreen> {
   }
 
   Future<void> _loadPrayedIds() async {
-    final prefs = await SharedPreferences.getInstance();
-    final keys = prefs.getKeys().where((k) => k.startsWith('prayed_for_')).toList();
-    setState(() {
-      _prayedIds = keys.map((k) => k.replaceFirst('prayed_for_', '')).toSet();
-    });
+    final uid = _auth.currentUser?.uid;
+    if (uid != null) {
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('prayed_prayers')
+          .get();
+          
+      setState(() {
+        _prayedIds = snapshot.docs.map((doc) => doc.id).toSet();
+      });
+    }
   }
 
   void _showNewPrayerDialog() {
@@ -151,9 +158,16 @@ class _OracaoScreenState extends State<OracaoScreen> {
       _prayedIds.add(docId);
     });
     
-    // Salva no SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('prayed_for_$docId', true);
+    final uid = _auth.currentUser?.uid;
+    if (uid != null) {
+      // Salva no perfil do usuário para sincronizar em outros aparelhos
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('prayed_prayers')
+          .doc(docId)
+          .set({'timestamp': FieldValue.serverTimestamp()});
+    }
 
     try {
       await _firestore.collection('prayers').doc(docId).update({

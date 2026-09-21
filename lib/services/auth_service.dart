@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 /// Serviço responsável por toda a comunicação com o Firebase Authentication.
@@ -5,9 +6,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 /// Centraliza login, cadastro, logout e o estado de autenticação para que a
 /// interface nunca precise falar diretamente com o SDK do Firebase.
 class AuthService {
-  AuthService({FirebaseAuth? auth}) : _auth = auth ?? FirebaseAuth.instance;
+  AuthService({FirebaseAuth? auth, FirebaseFirestore? firestore}) 
+      : _auth = auth ?? FirebaseAuth.instance,
+        _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseAuth _auth;
+  final FirebaseFirestore _firestore;
 
   /// Usuário atualmente autenticado (ou `null`).
   User? get currentUser => _auth.currentUser;
@@ -20,6 +24,7 @@ class AuthService {
     required String name,
     required String email,
     required String password,
+    required String ecclesiasticalTitle,
   }) async {
     final credential = await _auth.createUserWithEmailAndPassword(
       email: email.trim(),
@@ -30,6 +35,18 @@ class AuthService {
       await credential.user?.updateDisplayName(displayName);
       await credential.user?.reload();
     }
+    
+    // Grava o perfil no Firestore com os níveis de acesso
+    if (credential.user != null) {
+      await _firestore.collection('users').doc(credential.user!.uid).set({
+        'name': displayName,
+        'email': email.trim(),
+        'ecclesiasticalTitle': ecclesiasticalTitle,
+        'departmentAccess': 'membresia', // Padrão de segurança
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+    
     return credential;
   }
 
