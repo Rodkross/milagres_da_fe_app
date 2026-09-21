@@ -52,7 +52,7 @@ Responda o contexto histórico do livro bíblico:
 Responda o estudo e devocional:
 **Apoio Exegético:**
 **Aplicação na Vida Pessoal:**
-**Versículos Relacionados:**
+**Versículos Relacionados:** (Liste 2 ou 3 versículos relacionados SEPARADOS EXATAMENTE POR VÍRGULA. Exemplo: João 3:16, Salmos 23:1, Romanos 8:28)
 ''';
 
       final content = [Content.text(prompt)];
@@ -383,8 +383,8 @@ Não disponíveis no momento.
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: relatedVerses.split(',').map((v) {
-                    final verseRef = v.replaceAll('*', '').trim();
+                  children: relatedVerses.split(RegExp(r'[,\n]')).map((v) {
+                    final verseRef = v.replaceAll('*', '').replaceAll('-', '').trim();
                     if (verseRef.isEmpty) return const SizedBox.shrink();
                     
                     return ActionChip(
