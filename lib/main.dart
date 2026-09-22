@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/intl.dart';
 import 'helpers.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -116,11 +118,13 @@ final class _EscalaData {
     required this.role,
     required this.name,
     required this.icon,
+    this.photoUrl,
   });
 
   final String role;
   final String name;
   final IconData icon;
+  final String? photoUrl;
 }
 
 class MilagresDaFeApp extends StatelessWidget {
@@ -131,6 +135,14 @@ class MilagresDaFeApp extends StatelessWidget {
     return MaterialApp(
       title: AppInfo.appName,
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('pt', 'BR'),
+      ],
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: AppColors.surface,
@@ -195,26 +207,80 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
           ),
-          const SliverPadding(
-            padding: EdgeInsets.fromLTRB(20, 32, 20, 8),
-            sliver: SliverToBoxAdapter(
-              child: _SectionHeader(
-                title: 'Escala de Serviço',
-                subtitle: 'Culto de Libertação • Quinta, 19:00',
-                actionLabel: 'Ver tudo',
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (BuildContext context, int index) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _EscalaCard(data: _escala[index]),
-                ),
-                childCount: _escala.length,
-              ),
+          SliverToBoxAdapter(
+            child: StreamBuilder<DocumentSnapshot>(
+              stream: FirebaseFirestore.instance.collection('escala').doc('current').snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox.shrink();
+                }
+                
+                final data = snapshot.data?.data() as Map<String, dynamic>? ?? {};
+                final isDefined = data.containsKey('cultoDate') && data['cultoDate'] != null;
+                
+                if (!isDefined) {
+                  return const SizedBox.shrink();
+                }
+                
+                final cultoDate = (data['cultoDate'] as Timestamp).toDate();
+                final expirationDate = DateTime(cultoDate.year, cultoDate.month, cultoDate.day).add(const Duration(days: 1));
+                
+                if (DateTime.now().isAfter(expirationDate)) {
+                  return const SizedBox.shrink();
+                }
+
+                final cultoName = data['cultoName'] ?? '';
+                final assignments = List<Map<String, dynamic>>.from(data['assignments'] ?? []);
+                
+                if (assignments.isEmpty) {
+                   return const SizedBox.shrink();
+                }
+
+                String cleanTitle = cultoName;
+                String timeStr = "";
+                if (cultoName.contains('•')) {
+                  final parts = cultoName.split('•');
+                  cleanTitle = parts[0].trim();
+                  if (parts[1].contains(',')) {
+                    timeStr = parts[1].split(',').last.trim();
+                  } else {
+                    timeStr = parts[1].trim().split(' ').last;
+                  }
+                }
+                
+                String dateFormatted = DateFormat("EEEE, dd/MM", "pt_BR").format(cultoDate);
+                if (dateFormatted.isNotEmpty) {
+                  dateFormatted = dateFormatted[0].toUpperCase() + dateFormatted.substring(1);
+                }
+                final subtitleFormatted = timeStr.isNotEmpty ? '$cleanTitle • $dateFormatted às $timeStr' : '$cleanTitle • $dateFormatted';
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 32),
+                      _SectionHeader(
+                        title: 'Escala de Serviço',
+                        subtitle: subtitleFormatted,
+                        actionLabel: '',
+                      ),
+                      const SizedBox(height: 8),
+                      ...assignments.map((item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _EscalaCard(
+                          data: _EscalaData(
+                            role: item['role'] ?? '',
+                            name: item['name'] ?? '',
+                            icon: Icons.person_outline,
+                            photoUrl: item['photoUrl'],
+                          ),
+                        ),
+                      )).toList(),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 28)),
@@ -1528,7 +1594,12 @@ class _EscalaCard extends StatelessWidget {
                 colors: [AppColors.navy, AppColors.royal],
               ),
             ),
-            child: Icon(data.icon, color: AppColors.goldBright, size: 24),
+            child: (data.photoUrl != null && data.photoUrl!.isNotEmpty)
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.network(data.photoUrl!, width: 54, height: 54, fit: BoxFit.cover),
+                  )
+                : Icon(data.icon, color: AppColors.goldBright, size: 24),
           ),
           const SizedBox(width: 14),
           Expanded(
