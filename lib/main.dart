@@ -678,49 +678,66 @@ class _NotificationButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 44,
-      height: 44,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.08),
-              border: Border.all(color: AppColors.gold, width: 1.2),
-            ),
-            child: const Icon(
-              Icons.notifications_none,
-              color: Colors.white,
-              size: 22,
-            ),
-          ),
-          Positioned(
-            right: 0,
-            top: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              constraints: const BoxConstraints(minWidth: 18),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsScreen()));
+      },
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
               alignment: Alignment.center,
-              decoration: const BoxDecoration(
-                color: AppColors.gold,
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.08),
+                border: Border.all(color: AppColors.gold, width: 1.2),
               ),
-              child: const Text(
-                AppInfo.notificationCount,
-                style: TextStyle(
-                  color: AppColors.navyDeep,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                ),
+              child: const Icon(
+                Icons.notifications_none,
+                color: Colors.white,
+                size: 22,
               ),
             ),
-          ),
-        ],
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(FirebaseAuth.instance.currentUser?.uid ?? 'unknown')
+                  .collection('notifications')
+                  .where('read', isEqualTo: false)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox.shrink();
+                final count = snapshot.data!.docs.length;
+                return Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    constraints: const BoxConstraints(minWidth: 18),
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: AppColors.gold,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      count > 9 ? '9+' : count.toString(),
+                      style: const TextStyle(
+                        color: AppColors.navyDeep,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
